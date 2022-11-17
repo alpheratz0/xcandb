@@ -59,7 +59,7 @@ die(const char *fmt, ...)
 {
 	va_list args;
 
-	fputs("xcranbl: ", stderr);
+	fputs("xcandb: ", stderr);
 	va_start(args, fmt);
 	vfprintf(stderr, fmt, args);
 	va_end(args);
@@ -143,12 +143,12 @@ create_window(void)
 
 	xcb_change_property(
 		conn, XCB_PROP_MODE_REPLACE, window, get_atom("_NET_WM_NAME"),
-		get_atom("UTF8_STRING"), 8, strlen("xcranbl"), "xcranbl"
+		get_atom("UTF8_STRING"), 8, strlen("xcandb"), "xcandb"
 	);
 
 	xcb_change_property(
 		conn, XCB_PROP_MODE_REPLACE, window, XCB_ATOM_WM_CLASS,
-		XCB_ATOM_STRING, 8, strlen("xcranbl\0xcranbl\0"), "xcranbl\0xcranbl\0"
+		XCB_ATOM_STRING, 8, strlen("xcandb\0xcandb\0"), "xcandb\0xcandb\0"
 	);
 
 	xcb_change_property(
@@ -445,14 +445,14 @@ drag_end(UNUSED int32_t x, UNUSED int32_t y)
 static void
 usage(void)
 {
-	puts("usage: xcranbl [-fhv] [-l file]");
+	puts("usage: xcandb [-fhv] [-l file]");
 	exit(0);
 }
 
 static void
 version(void)
 {
-	puts("xcranbl version "VERSION);
+	puts("xcandb version "VERSION);
 	exit(0);
 }
 

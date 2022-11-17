@@ -1,7 +1,7 @@
 .Dd November 17, 2022
-.Dt XCRANBL 1
+.Dt XCANDB 1
 .Sh NAME
-.Nm xcranbl
+.Nm xcandb
 .Nd crop and blur utility for X
 .Sh SYNOPSIS
 .Nm
@@ -25,7 +25,7 @@ load png file
 .Sh EXAMPLES
 .Bl -tag -width indent
 .It crop and blur a freshly taken screenshot
-xcranbl -f -l $(xscreenshot -p -d $(mktemp -d))
+xcandb -f -l $(xscreenshot -p -d $(mktemp -d))
 .El
 .Sh SEE ALSO
 .Xr X 7
@@ -35,4 +35,4 @@ xcranbl -f -l $(xscreenshot -p -d $(mktemp -d))
 .Sh AUTHORS
 .An alpheratz0 Aq Mt alpheratz99@protonmail.com
 .Sh BUGS
-https://github.com/alpheratz0/xcranbl/issues
+https://github.com/alpheratz0/xcandb/issues
