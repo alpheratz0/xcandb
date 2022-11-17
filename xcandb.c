@@ -376,16 +376,18 @@ crop_end(UNUSED int32_t x, UNUSED int32_t y)
 	if (geom.y + geom.height >= cheight)
 		geom.height = cheight - geom.y;
 
-	ncpx = malloc(sizeof(uint32_t)*geom.width*geom.height);
+	if (geom.width > 0 && geom.height > 0) {
+		ncpx = malloc(sizeof(uint32_t)*geom.width*geom.height);
 
-	for (dy = 0; dy < geom.height; ++dy)
-		for (dx = 0; dx < geom.width; ++dx)
-			ncpx[dy*geom.width+dx] = cpx[(geom.y+dy)*cwidth+geom.x+dx];
+		for (dy = 0; dy < geom.height; ++dy)
+			for (dx = 0; dx < geom.width; ++dx)
+				ncpx[dy*geom.width+dx] = cpx[(geom.y+dy)*cwidth+geom.x+dx];
 
-	free(cpx);
-	cpx = ncpx;
-	cwidth = geom.width;
-	cheight = geom.height;
+		free(cpx);
+		cpx = ncpx;
+		cwidth = geom.width;
+		cheight = geom.height;
+	}
 
 	ccp.x = ccp.y = cbp.x = cbp.y = 0;
 	dcp.x = dcp.y = dbp.x = dbp.y = 0;
