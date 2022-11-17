@@ -582,8 +582,10 @@ main(int argc, char **argv)
 
 	create_window();
 
-	if (NULL == loadpath) create_canvas(800, 600);
-	else load_canvas(loadpath);
+	if (NULL == loadpath)
+		die("a path should be specified");
+
+	load_canvas(loadpath);
 
 	while ((ev = xcb_wait_for_event(conn))) {
 		switch (ev->response_type & ~0x80) {
