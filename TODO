@@ -1,4 +1,3 @@
-* rename project xpngcrop -> xcranbl (x crop and blur)
+* cleanup
 * add blur functionality
 * add jpeg support
-* cleanup
