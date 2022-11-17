@@ -1,4 +1,4 @@
-xcranbl is a png image cropping utility for X.
+xcranbl is a crop and blur utility for X.
 For more information about it's usage check `man xcranbl`.
 
 This program requires libxcb, libxcb-cursor, libxcb-image, libxcb-keysyms
