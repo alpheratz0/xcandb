@@ -50,7 +50,7 @@ static xcb_cursor_context_t *cctx;
 static xcb_cursor_t chand, carrow, ctcross;
 static xcb_point_t dbp, dcp;
 static xcb_point_t cbp, ccp;
-static int start_in_fullscreen, croping, dragging;
+static int start_in_fullscreen, cropping, dragging;
 static int32_t wwidth, wheight, cwidth, cheight;
 static uint32_t *wpx, *cpx;
 
@@ -319,7 +319,7 @@ prepare_render(void)
 static void
 crop_begin(int16_t x, int16_t y)
 {
-	croping = 1;
+	cropping = 1;
 	cbp.x = cbp.x - ccp.x + x;
 	cbp.y = cbp.y - ccp.y + y;
 
@@ -344,14 +344,14 @@ crop_update(int32_t x, int32_t y)
 static void
 crop_end(UNUSED int32_t x, UNUSED int32_t y)
 {
-	if (!croping)
+	if (!cropping)
 		return;
 
 	int dx, dy;
 	uint32_t *ncpx;
 	struct geometry geom;
 
-	croping = 0;
+	cropping = 0;
 
 	geom.x = MIN(cbp.x, ccp.x);
 	geom.y = MIN(cbp.y, ccp.y);
@@ -399,7 +399,7 @@ crop_end(UNUSED int32_t x, UNUSED int32_t y)
 static void
 crop_cancel(void)
 {
-	croping = 0;
+	cropping = 0;
 	ccp.x = ccp.y = cbp.x = cbp.y = 0;
 
 	prepare_render();
@@ -514,7 +514,7 @@ h_motion_notify(xcb_motion_notify_event_t *ev)
 {
 	if (dragging) {
 		drag_update(ev->event_x, ev->event_y);
-	} else if (croping) {
+	} else if (cropping) {
 		crop_update(ev->event_x, ev->event_y);
 	}
 }
