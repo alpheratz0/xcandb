@@ -2,7 +2,7 @@
 .Dt XCRANBL 1
 .Sh NAME
 .Nm xcranbl
-.Nd png image cropping utility for X
+.Nd crop and blur utility for X
 .Sh SYNOPSIS
 .Nm
 .Op Fl fhv
@@ -24,7 +24,7 @@ load png file
 .El
 .Sh EXAMPLES
 .Bl -tag -width indent
-.It crop a freshly taken screenshot
+.It crop and blur a freshly taken screenshot
 xcranbl -f -l $(xscreenshot -p -d $(mktemp -d))
 .El
 .Sh SEE ALSO
