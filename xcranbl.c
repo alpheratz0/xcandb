@@ -59,7 +59,7 @@ die(const char *fmt, ...)
 {
 	va_list args;
 
-	fputs("xpngcrop: ", stderr);
+	fputs("xcranbl: ", stderr);
 	va_start(args, fmt);
 	vfprintf(stderr, fmt, args);
 	va_end(args);
@@ -143,12 +143,12 @@ create_window(void)
 
 	xcb_change_property(
 		conn, XCB_PROP_MODE_REPLACE, window, get_atom("_NET_WM_NAME"),
-		get_atom("UTF8_STRING"), 8, strlen("xpngcrop"), "xpngcrop"
+		get_atom("UTF8_STRING"), 8, strlen("xcranbl"), "xcranbl"
 	);
 
 	xcb_change_property(
 		conn, XCB_PROP_MODE_REPLACE, window, XCB_ATOM_WM_CLASS,
-		XCB_ATOM_STRING, 8, strlen("xpngcrop\0xpngcrop\0"), "xpngcrop\0xpngcrop\0"
+		XCB_ATOM_STRING, 8, strlen("xcranbl\0xcranbl\0"), "xcranbl\0xcranbl\0"
 	);
 
 	xcb_change_property(
@@ -445,14 +445,14 @@ drag_end(UNUSED int32_t x, UNUSED int32_t y)
 static void
 usage(void)
 {
-	puts("usage: xpngcrop [-fhv] [-l file]");
+	puts("usage: xcranbl [-fhv] [-l file]");
 	exit(0);
 }
 
 static void
 version(void)
 {
-	puts("xpngcrop version "VERSION);
+	puts("xcranbl version "VERSION);
 	exit(0);
 }
 
