@@ -1,0 +1,37 @@
+.Dd November 17, 2022
+.Dt XPNGCROP 1
+.Sh NAME
+.Nm xpngcrop
+.Nd png image cropping utility for X
+.Sh SYNOPSIS
+.Nm
+.Op Fl fhv
+.Op Fl l Ar file
+.Sh DESCRIPTION
+The
+.Nm
+application lets you crop png images with ease.
+.Sh OPTIONS
+.Bl -tag -width indent
+.It Fl f
+start in fullscreen mode
+.It Fl h
+show usage
+.It Fl v
+display the program version
+.It Fl l
+load png file
+.El
+.Sh EXAMPLES
+.Bl -tag -width indent
+.It crop a freshly taken screenshot
+xpngcrop -f -l $(xscreenshot -p -d $(mktemp -d))
+.El
+.Sh SEE ALSO
+.Xr X 7
+.Xr png 5
+.Xr xscreenshot 1
+.Sh AUTHORS
+.An alpheratz0 Aq Mt alpheratz99@protonmail.com
+.Sh BUGS
+https://github.com/alpheratz0/xpngcrop/issues
