@@ -28,6 +28,7 @@
 #include <xcb/xcb_image.h>
 #include <xcb/xcb_keysyms.h>
 #include <xcb/xproto.h>
+#include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
 
 #define UNUSED __attribute__((unused))
@@ -172,6 +173,14 @@ create_window(void)
 	}
 
 	xcb_map_window(conn, window);
+
+	xcb_xkb_use_extension(conn, XCB_XKB_MAJOR_VERSION, XCB_XKB_MINOR_VERSION);
+
+	xcb_xkb_per_client_flags(
+		conn, XCB_XKB_ID_USE_CORE_KBD,
+		XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT, 1, 0, 0, 0
+	);
+
 	xcb_flush(conn);
 }
 
