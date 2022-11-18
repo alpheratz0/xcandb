@@ -54,7 +54,6 @@ static xcb_point_t cbp, ccp;
 static int start_in_fullscreen, cropping, dragging;
 static int32_t wwidth, wheight, cwidth, cheight;
 static uint32_t *wpx, *cpx;
-static uint8_t bg_gray;
 
 static void
 die(const char *fmt, ...)
@@ -308,7 +307,7 @@ draw(void)
 {
 	int32_t x, y, ox, oy;
 
-	memset(wpx, bg_gray, sizeof(uint32_t) * wwidth * wheight);
+	memset(wpx, 0, sizeof(uint32_t) * wwidth * wheight);
 
 	ox = (dcp.x - dbp.x) + (wwidth - cwidth) / 2;
 	oy = (dcp.y - dbp.y) + (wheight - cheight) / 2;
@@ -526,31 +525,26 @@ h_button_press(xcb_button_press_event_t *ev)
 		case XCB_BUTTON_INDEX_2:
 			drag_begin(ev->event_x, ev->event_y);
 			break;
-		case XCB_BUTTON_INDEX_3:
-			bg_gray = rand() % 255;
-			draw();
-			swap_buffers();
-			break;
 	}
 }
 
 static void
 h_motion_notify(xcb_motion_notify_event_t *ev)
 {
-	if (dragging) {
-		drag_update(ev->event_x, ev->event_y);
-	} else if (cropping) {
-		crop_update(ev->event_x, ev->event_y);
-	}
+	if (cropping) crop_update(ev->event_x, ev->event_y);
+	if (dragging) drag_update(ev->event_x, ev->event_y);
 }
 
 static void
 h_button_release(xcb_button_release_event_t *ev)
 {
-	if (ev->detail == XCB_BUTTON_INDEX_1) {
-		crop_end(ev->event_x, ev->event_y);
-	} else if (ev->detail == XCB_BUTTON_INDEX_2) {
-		drag_end(ev->event_x, ev->event_y);
+	switch (ev->detail) {
+		case XCB_BUTTON_INDEX_1:
+			crop_end(ev->event_x, ev->event_y);
+			break;
+		case XCB_BUTTON_INDEX_2:
+			drag_end(ev->event_x, ev->event_y);
+			break;
 	}
 }
 
