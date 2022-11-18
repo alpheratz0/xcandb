@@ -343,8 +343,8 @@ crop_begin(int16_t x, int16_t y)
 {
 	cropping = 1;
 
-	cbp.x = x;
-	cbp.y = y;
+	cbp.x = ccp.x = x;
+	cbp.y = ccp.y = y;
 
 	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &ctcross);
 	xcb_flush(conn);
