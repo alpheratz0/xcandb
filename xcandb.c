@@ -435,6 +435,9 @@ drag_begin(int16_t x, int16_t y)
 	dbp.x = dbp.x - dcp.x + x;
 	dbp.y = dbp.y - dcp.y + y;
 
+	dcp.x = x;
+	dcp.y = y;
+
 	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &chand);
 	xcb_flush(conn);
 }
@@ -453,9 +456,6 @@ static void
 drag_end(UNUSED int32_t x, UNUSED int32_t y)
 {
 	dragging = 0;
-
-	dcp.x = x;
-	dcp.y = y;
 
 	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &carrow);
 	xcb_flush(conn);
