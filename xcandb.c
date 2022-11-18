@@ -304,7 +304,7 @@ save_canvas(void)
 }
 
 static void
-prepare_render(void)
+draw(void)
 {
 	int32_t x, y, ox, oy;
 
@@ -333,6 +333,13 @@ prepare_render(void)
 }
 
 static void
+swap_buffers(void)
+{
+	xcb_image_put(conn, window, gc, image, 0, 0, 0);
+	xcb_flush(conn);
+}
+
+static void
 crop_begin(int16_t x, int16_t y)
 {
 	cropping = 1;
@@ -350,9 +357,8 @@ crop_update(int32_t x, int32_t y)
 	ccp.x = MIN(MAX(x, 0), wwidth);
 	ccp.y = MIN(MAX(y, 0), wheight);
 
-	prepare_render();
-	xcb_image_put(conn, window, gc, image, 0, 0, 0);
-	xcb_flush(conn);
+	draw();
+	swap_buffers();
 }
 
 static void
@@ -407,10 +413,9 @@ crop_end(UNUSED int32_t x, UNUSED int32_t y)
 
 	ccp.x = ccp.y = cbp.x = cbp.y = 0;
 
-	prepare_render();
-	xcb_image_put(conn, window, gc, image, 0, 0, 0);
 	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &carrow);
-	xcb_flush(conn);
+	draw();
+	swap_buffers();
 }
 
 static void
@@ -419,10 +424,9 @@ crop_cancel(void)
 	cropping = 0;
 	ccp.x = ccp.y = cbp.x = cbp.y = 0;
 
-	prepare_render();
-	xcb_image_put(conn, window, gc, image, 0, 0, 0);
 	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &carrow);
-	xcb_flush(conn);
+	draw();
+	swap_buffers();
 }
 
 static void
@@ -442,9 +446,8 @@ drag_update(int32_t x, int32_t y)
 	dcp.x = x;
 	dcp.y = y;
 
-	prepare_render();
-	xcb_image_put(conn, window, gc, image, 0, 0, 0);
-	xcb_flush(conn);
+	draw();
+	swap_buffers();
 }
 
 static void
@@ -525,9 +528,8 @@ h_button_press(xcb_button_press_event_t *ev)
 			break;
 		case XCB_BUTTON_INDEX_3:
 			bg_gray = rand() % 255;
-			prepare_render();
-			xcb_image_put(conn, window, gc, image, 0, 0, 0);
-			xcb_flush(conn);
+			draw();
+			swap_buffers();
 			break;
 	}
 }
@@ -569,9 +571,8 @@ h_configure_notify(xcb_configure_notify_event_t *ev)
 		wpx, sizeof(uint32_t) * wwidth * wheight, (uint8_t *)(wpx)
 	);
 
-	prepare_render();
-	xcb_image_put(conn, window, gc, image, 0, 0, 0);
-	xcb_flush(conn);
+	draw();
+	swap_buffers();
 }
 
 static void
