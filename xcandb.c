@@ -297,6 +297,12 @@ load_canvas(const char *path)
 }
 
 static void
+save_canvas(void)
+{
+	printf("saving canvas...\n");
+}
+
+static void
 prepare_render(void)
 {
 	int32_t x, y, ox, oy;
@@ -504,7 +510,7 @@ h_key_release(xcb_key_release_event_t *ev)
 	key = xcb_key_symbols_get_keysym(ksyms, ev->detail, 0);
 
 	if ((ev->state & XCB_MOD_MASK_CONTROL) && key == XKB_KEY_s)
-		printf("saving...\n");
+		save_canvas();
 }
 
 static void
