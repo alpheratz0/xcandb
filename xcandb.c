@@ -403,10 +403,11 @@ crop_end(UNUSED int32_t x, UNUSED int32_t y)
 		cpx = ncpx;
 		cwidth = geom.width;
 		cheight = geom.height;
+
+		dcp.x = dcp.y = dbp.x = dbp.y = 0;
 	}
 
 	ccp.x = ccp.y = cbp.x = cbp.y = 0;
-	dcp.x = dcp.y = dbp.x = dbp.y = 0;
 
 	prepare_render();
 	xcb_image_put(conn, window, gc, image, 0, 0, 0);
