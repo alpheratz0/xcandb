@@ -432,6 +432,8 @@ static void
 drag_begin(int16_t x, int16_t y)
 {
 	dragging = 1;
+
+	/* keep previous offset */
 	dbp.x = dbp.x - dcp.x + x;
 	dbp.y = dbp.y - dcp.y + y;
 
