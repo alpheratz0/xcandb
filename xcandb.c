@@ -560,16 +560,16 @@ h_configure_notify(xcb_configure_notify_event_t *ev)
 	if (wwidth == ev->width && wheight == ev->height)
 		return;
 
+	/* this also destroys wpx */
 	xcb_image_destroy(image);
 
-	wwidth = ev->width;
-	wheight = ev->height;
-	wpx = calloc(wwidth * wheight, sizeof(uint32_t));
+	wwidth   =  ev->width;
+	wheight  =  ev->height;
+	wpx      =  malloc(wwidth * wheight * sizeof(uint32_t));
 
-	image = xcb_image_create_native(
-		conn, wwidth, wheight, XCB_IMAGE_FORMAT_Z_PIXMAP, screen->root_depth,
-		wpx, sizeof(uint32_t) * wwidth * wheight, (uint8_t *)(wpx)
-	);
+	image    =  xcb_image_create_native(conn, wwidth, wheight,
+	                XCB_IMAGE_FORMAT_Z_PIXMAP, screen->root_depth, wpx,
+	                sizeof(uint32_t) * wwidth * wheight, (uint8_t *)(wpx));
 
 	draw();
 	swap_buffers();
