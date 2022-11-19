@@ -30,6 +30,7 @@
 #include <xcb/xproto.h>
 #include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
+#include <libsaveas/saveas.h>
 
 #define UNUSED __attribute__((unused))
 
@@ -127,7 +128,6 @@ create_window(void)
 		(const xcb_create_window_value_list_t []) {{
 			.event_mask = XCB_EVENT_MASK_EXPOSURE |
 			              XCB_EVENT_MASK_KEY_PRESS |
-			              XCB_EVENT_MASK_KEY_RELEASE |
 			              XCB_EVENT_MASK_BUTTON_PRESS |
 			              XCB_EVENT_MASK_BUTTON_RELEASE |
 			              XCB_EVENT_MASK_POINTER_MOTION |
@@ -299,7 +299,54 @@ load_canvas(const char *path)
 static void
 save_canvas(void)
 {
-	printf("saving canvas...\n");
+	int x, y;
+	FILE *fp;
+	png_struct *png;
+	png_info *pnginfo;
+	png_byte *row;
+	char filename[255] = { 0 };
+
+	if (saveas_show_popup(filename, sizeof(filename)))
+		return;
+
+	if (NULL == (fp = fopen(filename, "wb")))
+		die("fopen failed: %s", strerror(errno));
+
+	if (NULL == (png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL)))
+		die("png_create_write_struct failed");
+
+	if (NULL == (pnginfo = png_create_info_struct(png)))
+		die("png_create_info_struct failed");
+
+	if (setjmp(png_jmpbuf(png)) != 0)
+		die("aborting due to libpng error");
+
+	png_init_io(png, fp);
+
+	png_set_IHDR(
+		png, pnginfo, cwidth, cheight, 8, PNG_COLOR_TYPE_RGB,
+		PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE
+	);
+
+	png_write_info(png, pnginfo);
+	png_set_compression_level(png, 3);
+
+	row = malloc(cwidth * 3);
+
+	for (y = 0; y < cheight; ++y) {
+		for (x = 0; x < cwidth; ++x) {
+			row[x*3+0] = (cpx[y*cwidth+x] & 0xff0000) >> 16;
+			row[x*3+1] = (cpx[y*cwidth+x] & 0xff00) >> 8;
+			row[x*3+2] = cpx[y*cwidth+x] & 0xff;
+		}
+		png_write_row(png, row);
+	}
+
+	png_write_end(png, NULL);
+	png_free_data(png, pnginfo, PNG_FREE_ALL, -1);
+	png_destroy_write_struct(&png, NULL);
+	fclose(fp);
+	free(row);
 }
 
 static void
@@ -504,16 +551,7 @@ h_key_press(xcb_key_press_event_t *ev)
 
 	if (key == XKB_KEY_Escape)
 		crop_cancel();
-}
-
-static void
-h_key_release(xcb_key_release_event_t *ev)
-{
-	xcb_keysym_t key;
-
-	key = xcb_key_symbols_get_keysym(ksyms, ev->detail, 0);
-
-	if ((ev->state & XCB_MOD_MASK_CONTROL) && key == XKB_KEY_s)
+	else if ((ev->state & XCB_MOD_MASK_CONTROL) && key == XKB_KEY_s)
 		save_canvas();
 }
 
@@ -612,7 +650,6 @@ main(int argc, char **argv)
 			case XCB_CLIENT_MESSAGE:     h_client_message((void *)(ev)); break;
 			case XCB_EXPOSE:             h_expose((void *)(ev)); break;
 			case XCB_KEY_PRESS:          h_key_press((void *)(ev)); break;
-			case XCB_KEY_RELEASE:        h_key_release((void *)(ev)); break;
 			case XCB_BUTTON_PRESS:       h_button_press((void *)(ev)); break;
 			case XCB_MOTION_NOTIFY:      h_motion_notify((void *)(ev)); break;
 			case XCB_BUTTON_RELEASE:     h_button_release((void *)(ev)); break;
