@@ -322,6 +322,9 @@ draw(void)
 		}
 	}
 
+	if (!cropping)
+		return;
+
 	for (x = MAX(MIN(cbp.x,ccp.x), 0); x < MIN(MAX(cbp.x,ccp.x), wwidth); ++x)
 		if ((x%8)<6)
 			wpx[cbp.y*wwidth+x] = wpx[ccp.y*wwidth+x] = 0xff;
@@ -410,8 +413,6 @@ crop_end(UNUSED int32_t x, UNUSED int32_t y)
 		dcp.x = dcp.y = dbp.x = dbp.y = 0;
 	}
 
-	ccp.x = ccp.y = cbp.x = cbp.y = 0;
-
 	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &carrow);
 	draw();
 	swap_buffers();
@@ -421,7 +422,6 @@ static void
 crop_cancel(void)
 {
 	cropping = 0;
-	ccp.x = ccp.y = cbp.x = cbp.y = 0;
 
 	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &carrow);
 	draw();
