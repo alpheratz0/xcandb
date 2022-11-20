@@ -55,6 +55,7 @@ static xcb_point_t cbp, ccp;
 static int start_in_fullscreen, cropping, dragging;
 static int32_t wwidth, wheight, cwidth, cheight;
 static uint32_t *wpx, *cpx;
+static const char *loadpath;
 
 static void
 die(const char *fmt, ...)
@@ -198,6 +199,45 @@ destroy_window(void)
 }
 
 static void
+draw(void)
+{
+	int32_t x, y, ox, oy;
+
+	memset(wpx, 0, sizeof(uint32_t) * wwidth * wheight);
+
+	ox = (dcp.x - dbp.x) + (wwidth - cwidth) / 2;
+	oy = (dcp.y - dbp.y) + (wheight - cheight) / 2;
+
+	for (y = 0; y < cheight; ++y) {
+		if ((y+oy) < 0 || (y+oy) >= wheight)
+			continue;
+		for (x = 0; x < cwidth; ++x) {
+			if ((x+ox) < 0 || (x+ox) >= wwidth)
+				continue;
+			wpx[(y+oy)*wwidth+(x+ox)] = cpx[y*cwidth+x];
+		}
+	}
+
+	if (!cropping)
+		return;
+
+	for (x = MAX(MIN(cbp.x,ccp.x), 0); x < MIN(MAX(cbp.x,ccp.x), wwidth); ++x)
+		if ((x%8)<6)
+			wpx[cbp.y*wwidth+x] = wpx[ccp.y*wwidth+x] = 0xff;
+
+	for (y = MAX(MIN(cbp.y,ccp.y), 0); y < MIN(MAX(cbp.y,ccp.y), wheight); ++y)
+		if ((y%8)<6)
+			wpx[y*wwidth+cbp.x] = wpx[y*wwidth+ccp.x] = 0xff;
+}
+
+static void
+swap_buffers(void)
+{
+	xcb_image_put(conn, window, gc, image, 0, 0, 0);
+	xcb_flush(conn);
+}
+
+static void
 create_canvas(int32_t width, int32_t height)
 {
 	cwidth = width;
@@ -297,6 +337,15 @@ load_canvas(const char *path)
 }
 
 static void
+restore_canvas(void)
+{
+	destroy_canvas();
+	load_canvas(loadpath);
+	draw();
+	swap_buffers();
+}
+
+static void
 save_canvas(void)
 {
 	int x, y;
@@ -347,45 +396,6 @@ save_canvas(void)
 	png_destroy_write_struct(&png, NULL);
 	fclose(fp);
 	free(row);
-}
-
-static void
-draw(void)
-{
-	int32_t x, y, ox, oy;
-
-	memset(wpx, 0, sizeof(uint32_t) * wwidth * wheight);
-
-	ox = (dcp.x - dbp.x) + (wwidth - cwidth) / 2;
-	oy = (dcp.y - dbp.y) + (wheight - cheight) / 2;
-
-	for (y = 0; y < cheight; ++y) {
-		if ((y+oy) < 0 || (y+oy) >= wheight)
-			continue;
-		for (x = 0; x < cwidth; ++x) {
-			if ((x+ox) < 0 || (x+ox) >= wwidth)
-				continue;
-			wpx[(y+oy)*wwidth+(x+ox)] = cpx[y*cwidth+x];
-		}
-	}
-
-	if (!cropping)
-		return;
-
-	for (x = MAX(MIN(cbp.x,ccp.x), 0); x < MIN(MAX(cbp.x,ccp.x), wwidth); ++x)
-		if ((x%8)<6)
-			wpx[cbp.y*wwidth+x] = wpx[ccp.y*wwidth+x] = 0xff;
-
-	for (y = MAX(MIN(cbp.y,ccp.y), 0); y < MIN(MAX(cbp.y,ccp.y), wheight); ++y)
-		if ((y%8)<6)
-			wpx[y*wwidth+cbp.x] = wpx[y*wwidth+ccp.x] = 0xff;
-}
-
-static void
-swap_buffers(void)
-{
-	xcb_image_put(conn, window, gc, image, 0, 0, 0);
-	xcb_flush(conn);
 }
 
 static void
@@ -553,6 +563,8 @@ h_key_press(xcb_key_press_event_t *ev)
 		crop_cancel();
 	else if ((ev->state & XCB_MOD_MASK_CONTROL) && key == XKB_KEY_s)
 		save_canvas();
+	else if ((ev->state & XCB_MOD_MASK_CONTROL) && key == XKB_KEY_r)
+		restore_canvas();
 }
 
 static void
@@ -619,10 +631,7 @@ h_mapping_notify(xcb_mapping_notify_event_t *ev)
 int
 main(int argc, char **argv)
 {
-	const char *loadpath;
 	xcb_generic_event_t *ev;
-
-	loadpath = NULL;
 
 	while (++argv, --argc > 0) {
 		if ((*argv)[0] == '-' && (*argv)[1] != '\0' && (*argv)[2] == '\0') {
