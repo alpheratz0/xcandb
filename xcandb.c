@@ -15,7 +15,6 @@
 
 */
 
-#include <png.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,16 +30,12 @@
 #include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
 #include <libsaveas/saveas.h>
+#include "util.h"
+#include "canvas.h"
 
 #define UNUSED __attribute__((unused))
-
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #define MAX(a,b) ((a)>(b)?(a):(b))
-
-struct geometry {
-	int x, y;
-	int width, height;
-};
 
 static xcb_connection_t *conn;
 static xcb_screen_t *screen;
@@ -50,34 +45,11 @@ static xcb_image_t *image;
 static xcb_key_symbols_t *ksyms;
 static xcb_cursor_context_t *cctx;
 static xcb_cursor_t chand, carrow, ctcross;
-static xcb_point_t dbp, dcp;
-static xcb_point_t cbp, ccp;
-static xcb_point_t bbp, bcp;
-static int start_in_fullscreen, cropping, dragging, blurring;
-static int32_t wwidth, wheight, cwidth, cheight;
-static uint32_t *wpx, *cpx;
-static const char *loadpath;
-
-static void
-die(const char *fmt, ...)
-{
-	va_list args;
-
-	fputs("xcandb: ", stderr);
-	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	va_end(args);
-	fputc('\n', stderr);
-	exit(1);
-}
-
-static const char *
-enotnull(const char *str, const char *name)
-{
-	if (NULL == str)
-		die("%s cannot be null", name);
-	return str;
-}
+static xcb_point_t dbp, dcp, cbp, ccp, bbp, bcp;
+static int start_in_fullscreen, dragging, cropping, blurring;
+static int32_t wwidth, wheight;
+static uint32_t *wpx;
+struct canvas *canvas;
 
 static xcb_atom_t
 get_atom(const char *name)
@@ -200,43 +172,49 @@ destroy_window(void)
 }
 
 static void
+draw_dashed_rectangle(struct xcb_point_t a, struct xcb_point_t b)
+{
+	int x1, y1, x2, y2;
+	int cx, cy;
+
+	x1 = MAX(MIN(a.x, b.x), 0);
+	y1 = MAX(MIN(a.y, b.y), 0);
+	x2 = MIN(MAX(a.x, b.x), wwidth - 1);
+	y2 = MIN(MAX(a.y, b.y), wheight - 1);
+
+	for (cx = x1; cx < x2; ++cx)
+		if ((cx % 8) < 6)
+			wpx[y1*wwidth+cx] = wpx[y2*wwidth+cx] = 0xff;
+
+	for (cy = y1; cy < y2; ++cy)
+		if ((cy % 8) < 6)
+			wpx[cy*wwidth+x1] = wpx[cy*wwidth+x2] = 0xff;
+}
+
+static void
 draw(void)
 {
 	int32_t x, y, ox, oy;
 
 	memset(wpx, 0, sizeof(uint32_t) * wwidth * wheight);
 
-	ox = (dcp.x - dbp.x) + (wwidth - cwidth) / 2;
-	oy = (dcp.y - dbp.y) + (wheight - cheight) / 2;
+	ox = (dcp.x - dbp.x) + (wwidth - canvas->width) / 2;
+	oy = (dcp.y - dbp.y) + (wheight - canvas->height) / 2;
 
-	for (y = 0; y < cheight; ++y) {
+	for (y = 0; y < canvas->height; ++y) {
 		if ((y+oy) < 0 || (y+oy) >= wheight)
 			continue;
-		for (x = 0; x < cwidth; ++x) {
+		for (x = 0; x < canvas->width; ++x) {
 			if ((x+ox) < 0 || (x+ox) >= wwidth)
 				continue;
-			wpx[(y+oy)*wwidth+(x+ox)] = cpx[y*cwidth+x];
+			wpx[(y+oy)*wwidth+(x+ox)] = canvas->pixels[y*canvas->width+x];
 		}
 	}
 
 	if (cropping) {
-		for (x = MAX(MIN(cbp.x,ccp.x), 0); x < MIN(MAX(cbp.x,ccp.x), wwidth); ++x)
-			if ((x%8)<6)
-				wpx[MAX(MIN(cbp.y,wheight-1), 0)*wwidth+x] = wpx[MAX(MIN(ccp.y,wheight-1), 0)*wwidth+x] = 0xff;
-
-		for (y = MAX(MIN(cbp.y,ccp.y), 0); y < MIN(MAX(cbp.y,ccp.y), wheight); ++y)
-			if ((y%8)<6)
-				wpx[y*wwidth+MAX(MIN(cbp.x,wwidth-1), 0)] = wpx[y*wwidth+MAX(MIN(ccp.x,wwidth-1), 0)] = 0xff;
-	}
-
-	if (blurring) {
-		for (x = MAX(MIN(bbp.x,bcp.x), 0); x < MIN(MAX(bbp.x,bcp.x), wwidth); ++x)
-			if ((x%8)<6)
-				wpx[MAX(MIN(bbp.y,wheight-1), 0)*wwidth+x] = wpx[MAX(MIN(bcp.y,wheight-1), 0)*wwidth+x] = 0xff;
-
-		for (y = MAX(MIN(bbp.y,bcp.y), 0); y < MIN(MAX(bbp.y,bcp.y), wheight); ++y)
-			if ((y%8)<6)
-				wpx[y*wwidth+MAX(MIN(bbp.x,wwidth-1), 0)] = wpx[y*wwidth+MAX(MIN(bcp.x,wwidth-1), 0)] = 0xff;
+		draw_dashed_rectangle(cbp, ccp);
+	} else if (blurring) {
+		draw_dashed_rectangle(bbp, bcp);
 	}
 }
 
@@ -248,164 +226,38 @@ swap_buffers(void)
 }
 
 static void
-create_canvas(int32_t width, int32_t height)
+drag_begin(int16_t x, int16_t y)
 {
-	cwidth = width;
-	cheight = height;
-	cpx = malloc(sizeof(uint32_t) * cwidth * cheight);
+	dragging = 1;
 
-	if (NULL == cpx)
-		die("error while calling malloc, no memory available");
+	/* keep previous offset */
+	dbp.x = dbp.x - dcp.x + x;
+	dbp.y = dbp.y - dcp.y + y;
 
-	memset(cpx, 255, sizeof(uint32_t) * cwidth * cheight);
+	dcp.x = x;
+	dcp.y = y;
+
+	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &chand);
+	xcb_flush(conn);
 }
 
 static void
-destroy_canvas(void)
+drag_update(int32_t x, int32_t y)
 {
-	free(cpx);
-}
+	dcp.x = x;
+	dcp.y = y;
 
-static void
-load_canvas(const char *path)
-{
-	FILE *fp;
-	png_struct *png;
-	png_info *pnginfo;
-	png_byte **rows, bit_depth;
-	int16_t x, y;
-
-	if (NULL == (fp = fopen(path, "rb")))
-		die("failed to open file %s: %s", path, strerror(errno));
-
-	if (NULL == (png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL)))
-		die("png_create_read_struct failed");
-
-	if (NULL == (pnginfo = png_create_info_struct(png)))
-		die("png_create_info_struct failed");
-
-	if (setjmp(png_jmpbuf(png)) != 0)
-		die("aborting due to libpng error");
-
-	png_init_io(png, fp);
-	png_read_info(png, pnginfo);
-	create_canvas(png_get_image_width(png, pnginfo), png_get_image_height(png, pnginfo));
-
-	bit_depth = png_get_bit_depth(png, pnginfo);
-
-	png_set_interlace_handling(png);
-
-	if (bit_depth == 16)
-		png_set_strip_16(png);
-
-	if (png_get_valid(png, pnginfo, PNG_INFO_tRNS))
-		png_set_tRNS_to_alpha(png);
-
-	switch (png_get_color_type(png, pnginfo)) {
-		case PNG_COLOR_TYPE_RGB:
-			png_set_filler(png, 0xff, PNG_FILLER_AFTER);
-			break;
-		case PNG_COLOR_TYPE_PALETTE:
-			png_set_palette_to_rgb(png);
-			png_set_filler(png, 0xff, PNG_FILLER_AFTER);
-			break;
-		case PNG_COLOR_TYPE_GRAY:
-			if (bit_depth < 8)
-				png_set_expand_gray_1_2_4_to_8(png);
-			png_set_filler(png, 0xff, PNG_FILLER_AFTER);
-			png_set_gray_to_rgb(png);
-			break;
-		case PNG_COLOR_TYPE_GRAY_ALPHA:
-			png_set_gray_to_rgb(png);
-	}
-
-	png_read_update_info(png, pnginfo);
-
-	rows = png_malloc(png, sizeof(png_byte *) * cheight);
-
-	for (y = 0; y < cheight; ++y)
-		rows[y] = png_malloc(png, png_get_rowbytes(png, pnginfo));
-
-	png_read_image(png, rows);
-
-	for (y = 0; y < cheight; ++y) {
-		for (x = 0; x < cwidth; ++x) {
-			if (rows[y][x*4+3] == 0)
-				cpx[y*cwidth+x] = 0xffffff;
-			else cpx[y*cwidth+x] = rows[y][x*4+0] << 16 |
-				rows[y][x*4+1] << 8 |
-				rows[y][x*4+2];
-		}
-		png_free(png, rows[y]);
-	}
-
-	png_free(png, rows);
-	png_read_end(png, NULL);
-	png_free_data(png, pnginfo, PNG_FREE_ALL, -1);
-	png_destroy_read_struct(&png, NULL, NULL);
-	fclose(fp);
-}
-
-static void
-restore_canvas(void)
-{
-	destroy_canvas();
-	load_canvas(loadpath);
 	draw();
 	swap_buffers();
 }
 
 static void
-save_canvas(void)
+drag_end(void)
 {
-	int x, y;
-	FILE *fp;
-	png_struct *png;
-	png_info *pnginfo;
-	png_byte *row;
-	const char *filename;
+	dragging = 0;
 
-	if (saveas_show_popup(&filename) != SAVEAS_STATUS_OK)
-		return;
-
-	if (NULL == (fp = fopen(filename, "wb")))
-		die("fopen failed: %s", strerror(errno));
-
-	if (NULL == (png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL)))
-		die("png_create_write_struct failed");
-
-	if (NULL == (pnginfo = png_create_info_struct(png)))
-		die("png_create_info_struct failed");
-
-	if (setjmp(png_jmpbuf(png)) != 0)
-		die("aborting due to libpng error");
-
-	png_init_io(png, fp);
-
-	png_set_IHDR(
-		png, pnginfo, cwidth, cheight, 8, PNG_COLOR_TYPE_RGB,
-		PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE
-	);
-
-	png_write_info(png, pnginfo);
-	png_set_compression_level(png, 3);
-
-	row = malloc(cwidth * 3);
-
-	for (y = 0; y < cheight; ++y) {
-		for (x = 0; x < cwidth; ++x) {
-			row[x*3+0] = (cpx[y*cwidth+x] & 0xff0000) >> 16;
-			row[x*3+1] = (cpx[y*cwidth+x] & 0xff00) >> 8;
-			row[x*3+2] = cpx[y*cwidth+x] & 0xff;
-		}
-		png_write_row(png, row);
-	}
-
-	png_write_end(png, NULL);
-	png_free_data(png, pnginfo, PNG_FREE_ALL, -1);
-	png_destroy_write_struct(&png, NULL);
-	fclose(fp);
-	free(row);
+	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &carrow);
+	xcb_flush(conn);
 }
 
 static void
@@ -431,65 +283,24 @@ crop_update(int32_t x, int32_t y)
 }
 
 static void
-crop_end(UNUSED int32_t x, UNUSED int32_t y)
+crop_end(void)
 {
+	int x, y, width, height;
+
 	if (!cropping)
 		return;
 
-	int dx, dy;
-	uint32_t *ncpx;
-	struct geometry geom;
+	x = MIN(cbp.x, ccp.x);
+	y = MIN(cbp.y, ccp.y);
+	width = MAX(cbp.x, ccp.x) - x;
+	height = MAX(cbp.y, ccp.y) - y;
+	x -= (dcp.x - dbp.x) + (wwidth - canvas->width) / 2;
+	y -= (dcp.y - dbp.y) + (wheight - canvas->height) / 2;
+
+	canvas_crop(canvas, x, y, width, height);
 
 	cropping = 0;
-
-	geom.x = MIN(cbp.x, ccp.x);
-	geom.y = MIN(cbp.y, ccp.y);
-	geom.width = MAX(cbp.x, ccp.x) - geom.x;
-	geom.height = MAX(cbp.y, ccp.y) - geom.y;
-	geom.x -= (dcp.x - dbp.x) + (wwidth - cwidth) / 2;
-	geom.y -= (dcp.y - dbp.y) + (wheight - cheight) / 2;
-
-
-	if (geom.x < 0) {
-		geom.width += geom.x;
-		geom.x = 0;
-	}
-
-	if (geom.y < 0) {
-		geom.height += geom.y;
-		geom.y = 0;
-	}
-
-	if (geom.x + geom.width >= cwidth)
-		geom.width = cwidth - geom.x;
-
-	if (geom.y + geom.height >= cheight)
-		geom.height = cheight - geom.y;
-
-	if (geom.width > 0 && geom.height > 0) {
-		ncpx = malloc(sizeof(uint32_t)*geom.width*geom.height);
-
-		for (dy = 0; dy < geom.height; ++dy)
-			for (dx = 0; dx < geom.width; ++dx)
-				ncpx[dy*geom.width+dx] = cpx[(geom.y+dy)*cwidth+geom.x+dx];
-
-		free(cpx);
-		cpx = ncpx;
-		cwidth = geom.width;
-		cheight = geom.height;
-
-		dcp.x = dcp.y = dbp.x = dbp.y = 0;
-	}
-
-	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &carrow);
-	draw();
-	swap_buffers();
-}
-
-static void
-crop_cancel(void)
-{
-	cropping = 0;
+	dcp.x = dcp.y = dbp.x = dbp.y = 0;
 
 	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &carrow);
 	draw();
@@ -519,128 +330,27 @@ blur_update(int32_t x, int32_t y)
 }
 
 static void
-blur_end(UNUSED int32_t x, UNUSED int32_t y)
+blur_end(void)
 {
+	int x, y, width, height;
+
 	if (!blurring)
 		return;
 
-	int dx, dy;
-	int kdx, kdy;
-	int r, g, b, numpx;
-	uint32_t *ncpx;
-	struct geometry geom;
+	x = MIN(bbp.x, bcp.x);
+	y = MIN(bbp.y, bcp.y);
+	width = MAX(bbp.x, bcp.x) - x;
+	height = MAX(bbp.y, bcp.y) - y;
+	x -= (dcp.x - dbp.x) + (wwidth - canvas->width) / 2;
+	y -= (dcp.y - dbp.y) + (wheight - canvas->height) / 2;
+
+	canvas_blur(canvas, x, y, width, height, 10);
 
 	blurring = 0;
 
-	geom.x = MIN(bbp.x, bcp.x);
-	geom.y = MIN(bbp.y, bcp.y);
-	geom.width = MAX(bbp.x, bcp.x) - geom.x;
-	geom.height = MAX(bbp.y, bcp.y) - geom.y;
-	geom.x -= (dcp.x - dbp.x) + (wwidth - cwidth) / 2;
-	geom.y -= (dcp.y - dbp.y) + (wheight - cheight) / 2;
-
-	if (geom.x < 0) {
-		geom.width += geom.x;
-		geom.x = 0;
-	}
-
-	if (geom.y < 0) {
-		geom.height += geom.y;
-		geom.y = 0;
-	}
-
-	if (geom.x + geom.width >= cwidth)
-		geom.width = cwidth - geom.x;
-
-	if (geom.y + geom.height >= cheight)
-		geom.height = cheight - geom.y;
-
-	if (geom.width > 0 && geom.height > 0) {
-		ncpx = malloc(sizeof(uint32_t)*geom.width*geom.height);
-		for (int zzz = 0; zzz < 3; ++zzz) {
-			for (dy = 0; dy < geom.height; ++dy)
-				for (dx = 0; dx < geom.width; ++dx)
-					ncpx[dy*geom.width+dx] = cpx[(geom.y+dy)*cwidth+geom.x+dx];
-
-			/* blur the area */
-			for (dy = 0; dy < geom.height; ++dy) {
-				for (dx = 0; dx < geom.width; ++dx) {
-					numpx = r = g = b = 0;
-					for (kdy = -3; kdy < 4; ++kdy) {
-						if ((geom.y+dy+kdy) < 0 || (geom.y+dy+kdy) >= cheight)
-							continue;
-						for (kdx = -3; kdx < 4; ++kdx) {
-							if ((geom.x+dx+kdx) < 0 || (geom.x+dx+kdx) >= cwidth)
-								continue;
-
-							r += (cpx[(geom.y+dy+kdy)*cwidth+geom.x+dx+kdx] >> 16) & 0xff;
-							g += (cpx[(geom.y+dy+kdy)*cwidth+geom.x+dx+kdx] >> 8) & 0xff;
-							b += (cpx[(geom.y+dy+kdy)*cwidth+geom.x+dx+kdx] >> 0) & 0xff;
-							numpx++;
-						}
-					}
-					ncpx[dy*geom.width+dx] = ((r/numpx) << 16) | ((g/numpx) << 8) | (b/numpx);
-				}
-			}
-
-			/* copy the area */
-			for (dy = 0; dy < geom.height; ++dy)
-				for (dx = 0; dx < geom.width; ++dx)
-					cpx[(geom.y+dy)*cwidth+geom.x+dx] = ncpx[dy*geom.width+dx];
-		}
-
-		free(ncpx);
-	}
-
 	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &carrow);
 	draw();
 	swap_buffers();
-}
-
-static void
-blur_cancel(void)
-{
-	blurring = 0;
-
-	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &carrow);
-	draw();
-	swap_buffers();
-}
-
-
-static void
-drag_begin(int16_t x, int16_t y)
-{
-	dragging = 1;
-
-	/* keep previous offset */
-	dbp.x = dbp.x - dcp.x + x;
-	dbp.y = dbp.y - dcp.y + y;
-
-	dcp.x = x;
-	dcp.y = y;
-
-	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &chand);
-	xcb_flush(conn);
-}
-
-static void
-drag_update(int32_t x, int32_t y)
-{
-	dcp.x = x;
-	dcp.y = y;
-
-	draw();
-	swap_buffers();
-}
-
-static void
-drag_end(UNUSED int32_t x, UNUSED int32_t y)
-{
-	dragging = 0;
-
-	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &carrow);
-	xcb_flush(conn);
 }
 
 static void
@@ -664,7 +374,7 @@ h_client_message(xcb_client_message_event_t *ev)
 	/* https://www.x.org/docs/ICCCM/icccm.pdf */
 	if (ev->data.data32[0] == get_atom("WM_DELETE_WINDOW")) {
 		destroy_window();
-		destroy_canvas();
+		canvas_destroy(canvas);
 		exit(0);
 	}
 }
@@ -678,17 +388,20 @@ h_expose(UNUSED xcb_expose_event_t *ev)
 static void
 h_key_press(xcb_key_press_event_t *ev)
 {
+	const char *savepath;
 	xcb_keysym_t key;
 
 	key = xcb_key_symbols_get_keysym(ksyms, ev->detail, 0);
 
-	if (key == XKB_KEY_Escape) {
-		crop_cancel();
-		blur_cancel();
-	} else if ((ev->state & XCB_MOD_MASK_CONTROL) && key == XKB_KEY_s)
-		save_canvas();
-	else if ((ev->state & XCB_MOD_MASK_CONTROL) && key == XKB_KEY_r)
-		restore_canvas();
+	if ((ev->state & XCB_MOD_MASK_CONTROL) && key == XKB_KEY_s) {
+		if (saveas_show_popup(&savepath) == SAVEAS_STATUS_OK)
+			canvas_save(canvas, savepath);
+	} else if (key == XKB_KEY_Escape) {
+		cropping = blurring = 0;
+		xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &carrow);
+		draw();
+		swap_buffers();
+	}
 }
 
 static void
@@ -710,9 +423,12 @@ h_button_press(xcb_button_press_event_t *ev)
 static void
 h_motion_notify(xcb_motion_notify_event_t *ev)
 {
-	if (cropping) crop_update(ev->event_x, ev->event_y);
-	if (dragging) drag_update(ev->event_x, ev->event_y);
-	if (blurring) blur_update(ev->event_x, ev->event_y);
+	if (dragging)
+		drag_update(ev->event_x, ev->event_y);
+	if (cropping)
+		crop_update(ev->event_x, ev->event_y);
+	if (blurring)
+		blur_update(ev->event_x, ev->event_y);
 }
 
 static void
@@ -720,13 +436,13 @@ h_button_release(xcb_button_release_event_t *ev)
 {
 	switch (ev->detail) {
 		case XCB_BUTTON_INDEX_1:
-			crop_end(ev->event_x, ev->event_y);
+			crop_end();
 			break;
 		case XCB_BUTTON_INDEX_2:
-			drag_end(ev->event_x, ev->event_y);
+			drag_end();
 			break;
 		case XCB_BUTTON_INDEX_3:
-			blur_end(ev->event_x, ev->event_y);
+			blur_end();
 			break;
 	}
 }
@@ -762,7 +478,10 @@ h_mapping_notify(xcb_mapping_notify_event_t *ev)
 int
 main(int argc, char **argv)
 {
+	const char *loadpath;
 	xcb_generic_event_t *ev;
+
+	loadpath = NULL;
 
 	while (++argv, --argc > 0) {
 		if ((*argv)[0] == '-' && (*argv)[1] != '\0' && (*argv)[2] == '\0') {
@@ -783,7 +502,7 @@ main(int argc, char **argv)
 	if (NULL == loadpath)
 		die("a path should be specified");
 
-	load_canvas(loadpath);
+	canvas = canvas_load(loadpath);
 
 	while ((ev = xcb_wait_for_event(conn))) {
 		switch (ev->response_type & ~0x80) {
@@ -801,7 +520,7 @@ main(int argc, char **argv)
 	}
 
 	destroy_window();
-	destroy_canvas();
+	canvas_destroy(canvas);
 
 	return 0;
 }

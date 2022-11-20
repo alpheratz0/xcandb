@@ -5,11 +5,14 @@ include config.mk
 
 all: xcandb
 
-xcandb: xcandb.o
-	$(CC) $(LDFLAGS) -o xcandb xcandb.o $(LDLIBS)
+util.o: util.c util.h
+canvas.o: canvas.c canvas.h
+
+xcandb: xcandb.o canvas.o util.o
+	$(CC) $(LDFLAGS) -o xcandb xcandb.o canvas.o util.o $(LDLIBS)
 
 clean:
-	rm -f xcandb xcandb.o xcandb-$(VERSION).tar.gz
+	rm -f xcandb xcandb.o canvas.o util.o xcandb-$(VERSION).tar.gz
 
 install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
