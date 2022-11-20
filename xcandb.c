@@ -304,9 +304,9 @@ save_canvas(void)
 	png_struct *png;
 	png_info *pnginfo;
 	png_byte *row;
-	char filename[255] = { 0 };
+	const char *filename;
 
-	if (saveas_show_popup(filename, sizeof(filename)))
+	if (saveas_show_popup(&filename) != SAVEAS_STATUS_OK)
 		return;
 
 	if (NULL == (fp = fopen(filename, "wb")))
