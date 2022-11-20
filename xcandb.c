@@ -52,7 +52,8 @@ static xcb_cursor_context_t *cctx;
 static xcb_cursor_t chand, carrow, ctcross;
 static xcb_point_t dbp, dcp;
 static xcb_point_t cbp, ccp;
-static int start_in_fullscreen, cropping, dragging;
+static xcb_point_t bbp, bcp;
+static int start_in_fullscreen, cropping, dragging, blurring;
 static int32_t wwidth, wheight, cwidth, cheight;
 static uint32_t *wpx, *cpx;
 static const char *loadpath;
@@ -218,16 +219,25 @@ draw(void)
 		}
 	}
 
-	if (!cropping)
-		return;
+	if (cropping) {
+		for (x = MAX(MIN(cbp.x,ccp.x), 0); x < MIN(MAX(cbp.x,ccp.x), wwidth); ++x)
+			if ((x%8)<6)
+				wpx[MAX(MIN(cbp.y,wheight-1), 0)*wwidth+x] = wpx[MAX(MIN(ccp.y,wheight-1), 0)*wwidth+x] = 0xff;
 
-	for (x = MAX(MIN(cbp.x,ccp.x), 0); x < MIN(MAX(cbp.x,ccp.x), wwidth); ++x)
-		if ((x%8)<6)
-			wpx[cbp.y*wwidth+x] = wpx[ccp.y*wwidth+x] = 0xff;
+		for (y = MAX(MIN(cbp.y,ccp.y), 0); y < MIN(MAX(cbp.y,ccp.y), wheight); ++y)
+			if ((y%8)<6)
+				wpx[y*wwidth+MAX(MIN(cbp.x,wwidth-1), 0)] = wpx[y*wwidth+MAX(MIN(ccp.x,wwidth-1), 0)] = 0xff;
+	}
 
-	for (y = MAX(MIN(cbp.y,ccp.y), 0); y < MIN(MAX(cbp.y,ccp.y), wheight); ++y)
-		if ((y%8)<6)
-			wpx[y*wwidth+cbp.x] = wpx[y*wwidth+ccp.x] = 0xff;
+	if (blurring) {
+		for (x = MAX(MIN(bbp.x,bcp.x), 0); x < MIN(MAX(bbp.x,bcp.x), wwidth); ++x)
+			if ((x%8)<6)
+				wpx[MAX(MIN(bbp.y,wheight-1), 0)*wwidth+x] = wpx[MAX(MIN(bcp.y,wheight-1), 0)*wwidth+x] = 0xff;
+
+		for (y = MAX(MIN(bbp.y,bcp.y), 0); y < MIN(MAX(bbp.y,bcp.y), wheight); ++y)
+			if ((y%8)<6)
+				wpx[y*wwidth+MAX(MIN(bbp.x,wwidth-1), 0)] = wpx[y*wwidth+MAX(MIN(bcp.x,wwidth-1), 0)] = 0xff;
+	}
 }
 
 static void
@@ -439,6 +449,7 @@ crop_end(UNUSED int32_t x, UNUSED int32_t y)
 	geom.x -= (dcp.x - dbp.x) + (wwidth - cwidth) / 2;
 	geom.y -= (dcp.y - dbp.y) + (wheight - cheight) / 2;
 
+
 	if (geom.x < 0) {
 		geom.width += geom.x;
 		geom.x = 0;
@@ -484,6 +495,118 @@ crop_cancel(void)
 	draw();
 	swap_buffers();
 }
+
+static void
+blur_begin(int16_t x, int16_t y)
+{
+	blurring = 1;
+
+	bbp.x = bcp.x = x;
+	bbp.y = bcp.y = y;
+
+	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &ctcross);
+	xcb_flush(conn);
+}
+
+static void
+blur_update(int32_t x, int32_t y)
+{
+	bcp.x = MIN(MAX(x, 0), wwidth);
+	bcp.y = MIN(MAX(y, 0), wheight);
+
+	draw();
+	swap_buffers();
+}
+
+static void
+blur_end(UNUSED int32_t x, UNUSED int32_t y)
+{
+	if (!blurring)
+		return;
+
+	int dx, dy;
+	int kdx, kdy;
+	int r, g, b, numpx;
+	uint32_t *ncpx;
+	struct geometry geom;
+
+	blurring = 0;
+
+	geom.x = MIN(bbp.x, bcp.x);
+	geom.y = MIN(bbp.y, bcp.y);
+	geom.width = MAX(bbp.x, bcp.x) - geom.x;
+	geom.height = MAX(bbp.y, bcp.y) - geom.y;
+	geom.x -= (dcp.x - dbp.x) + (wwidth - cwidth) / 2;
+	geom.y -= (dcp.y - dbp.y) + (wheight - cheight) / 2;
+
+	if (geom.x < 0) {
+		geom.width += geom.x;
+		geom.x = 0;
+	}
+
+	if (geom.y < 0) {
+		geom.height += geom.y;
+		geom.y = 0;
+	}
+
+	if (geom.x + geom.width >= cwidth)
+		geom.width = cwidth - geom.x;
+
+	if (geom.y + geom.height >= cheight)
+		geom.height = cheight - geom.y;
+
+	if (geom.width > 0 && geom.height > 0) {
+		ncpx = malloc(sizeof(uint32_t)*geom.width*geom.height);
+		for (int zzz = 0; zzz < 25; ++zzz) {
+			for (dy = 0; dy < geom.height; ++dy)
+				for (dx = 0; dx < geom.width; ++dx)
+					ncpx[dy*geom.width+dx] = cpx[(geom.y+dy)*cwidth+geom.x+dx];
+
+			/* blur the area */
+			for (dy = 0; dy < geom.height; ++dy) {
+				for (dx = 0; dx < geom.width; ++dx) {
+					numpx = r = g = b = 0;
+					for (kdy = -1; kdy < 2; ++kdy) {
+						if ((geom.y+dy+kdy) < 0 || (geom.y+dy+kdy) >= cheight)
+							continue;
+						for (kdx = -1; kdx < 2; ++kdx) {
+							if ((geom.x+dx+kdx) < 0 || (geom.x+dx+kdx) >= cwidth)
+								continue;
+
+							r += (cpx[(geom.y+dy+kdy)*cwidth+geom.x+dx+kdx] >> 16) & 0xff;
+							g += (cpx[(geom.y+dy+kdy)*cwidth+geom.x+dx+kdx] >> 8) & 0xff;
+							b += (cpx[(geom.y+dy+kdy)*cwidth+geom.x+dx+kdx] >> 0) & 0xff;
+							numpx++;
+						}
+					}
+					ncpx[dy*geom.width+dx] = ((r/numpx) << 16) | ((g/numpx) << 8) | (b/numpx);
+				}
+			}
+
+			/* copy the area */
+			for (dy = 0; dy < geom.height; ++dy)
+				for (dx = 0; dx < geom.width; ++dx)
+					cpx[(geom.y+dy)*cwidth+geom.x+dx] = ncpx[dy*geom.width+dx];
+		}
+
+		free(ncpx);
+	}
+
+	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &carrow);
+	draw();
+	swap_buffers();
+}
+
+static void
+blur_cancel(void)
+{
+	blurring = 0;
+
+	xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &carrow);
+	draw();
+	swap_buffers();
+}
+
 
 static void
 drag_begin(int16_t x, int16_t y)
@@ -559,9 +682,10 @@ h_key_press(xcb_key_press_event_t *ev)
 
 	key = xcb_key_symbols_get_keysym(ksyms, ev->detail, 0);
 
-	if (key == XKB_KEY_Escape)
+	if (key == XKB_KEY_Escape) {
 		crop_cancel();
-	else if ((ev->state & XCB_MOD_MASK_CONTROL) && key == XKB_KEY_s)
+		blur_cancel();
+	} else if ((ev->state & XCB_MOD_MASK_CONTROL) && key == XKB_KEY_s)
 		save_canvas();
 	else if ((ev->state & XCB_MOD_MASK_CONTROL) && key == XKB_KEY_r)
 		restore_canvas();
@@ -577,6 +701,9 @@ h_button_press(xcb_button_press_event_t *ev)
 		case XCB_BUTTON_INDEX_2:
 			drag_begin(ev->event_x, ev->event_y);
 			break;
+		case XCB_BUTTON_INDEX_3:
+			blur_begin(ev->event_x, ev->event_y);
+			break;
 	}
 }
 
@@ -585,6 +712,7 @@ h_motion_notify(xcb_motion_notify_event_t *ev)
 {
 	if (cropping) crop_update(ev->event_x, ev->event_y);
 	if (dragging) drag_update(ev->event_x, ev->event_y);
+	if (blurring) blur_update(ev->event_x, ev->event_y);
 }
 
 static void
@@ -596,6 +724,9 @@ h_button_release(xcb_button_release_event_t *ev)
 			break;
 		case XCB_BUTTON_INDEX_2:
 			drag_end(ev->event_x, ev->event_y);
+			break;
+		case XCB_BUTTON_INDEX_3:
+			blur_end(ev->event_x, ev->event_y);
 			break;
 	}
 }
