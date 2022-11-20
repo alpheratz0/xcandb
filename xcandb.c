@@ -557,7 +557,7 @@ blur_end(UNUSED int32_t x, UNUSED int32_t y)
 
 	if (geom.width > 0 && geom.height > 0) {
 		ncpx = malloc(sizeof(uint32_t)*geom.width*geom.height);
-		for (int zzz = 0; zzz < 25; ++zzz) {
+		for (int zzz = 0; zzz < 3; ++zzz) {
 			for (dy = 0; dy < geom.height; ++dy)
 				for (dx = 0; dx < geom.width; ++dx)
 					ncpx[dy*geom.width+dx] = cpx[(geom.y+dy)*cwidth+geom.x+dx];
@@ -566,10 +566,10 @@ blur_end(UNUSED int32_t x, UNUSED int32_t y)
 			for (dy = 0; dy < geom.height; ++dy) {
 				for (dx = 0; dx < geom.width; ++dx) {
 					numpx = r = g = b = 0;
-					for (kdy = -1; kdy < 2; ++kdy) {
+					for (kdy = -3; kdy < 4; ++kdy) {
 						if ((geom.y+dy+kdy) < 0 || (geom.y+dy+kdy) >= cheight)
 							continue;
-						for (kdx = -1; kdx < 2; ++kdx) {
+						for (kdx = -3; kdx < 4; ++kdx) {
 							if ((geom.x+dx+kdx) < 0 || (geom.x+dx+kdx) >= cwidth)
 								continue;
 
