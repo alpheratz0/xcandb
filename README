@@ -1,4 +1,4 @@
-xcandb is a crop and blur utility for X.
+xcandb is a png crop and blur utility for X.
 For more information about it's usage check `man xcandb`.
 
 This program requires libxcb, libxcb-cursor, libxcb-image, libxcb-keysyms,
