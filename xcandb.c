@@ -25,7 +25,7 @@
 #include <xcb/xproto.h>
 #include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
-#include <libsaveas/saveas.h>
+#include <saveas/saveas.h>
 #include "util.h"
 #include "canvas.h"
 
