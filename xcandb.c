@@ -168,7 +168,7 @@ destroy_window(void)
 }
 
 static void
-draw_dashed_rectangle(struct xcb_point_t a, struct xcb_point_t b)
+draw_dashed_rectangle(xcb_point_t a, xcb_point_t b)
 {
 	int x1, y1, x2, y2;
 	int cx, cy;
