@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2022 <alpheratz99@protonmail.com>
+	Copyright (C) 2022-2023 <alpheratz99@protonmail.com>
 
 	This program is free software; you can redistribute it and/or modify it under
 	the terms of the GNU General Public License version 2 as published by the
@@ -114,6 +114,7 @@ canvas_load(const char *path)
 	png_free(png, rows);
 	png_read_end(png, NULL);
 	png_free_data(png, pnginfo, PNG_FREE_ALL, -1);
+	png_destroy_info_struct(png, &pnginfo);
 	png_destroy_read_struct(&png, NULL, NULL);
 	fclose(fp);
 
@@ -164,6 +165,7 @@ canvas_save(struct canvas *canvas, const char *path)
 
 	png_write_end(png, NULL);
 	png_free_data(png, pnginfo, PNG_FREE_ALL, -1);
+	png_destroy_info_struct(png, &pnginfo);
 	png_destroy_write_struct(&png, NULL);
 	fclose(fp);
 	free(row);
