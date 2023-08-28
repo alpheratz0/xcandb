@@ -1,6 +1,8 @@
 xcandb is an image crop and blur utility for X.
 For more information about it's usage check `man xcandb`.
 
+code is ugly sorry :(
+
 This program requires libxcb, libxcb-cursor, libxcb-image,
 libxcb-keysyms and libxcb-xkb to be installed.
 In order to build this program you need to run make.
