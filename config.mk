@@ -5,7 +5,7 @@ VERSION=0.3.0
 CC=cc
 INCS=-I/usr/X11R6/include -Iinclude
 CFLAGS=-std=c99 -pedantic -Wall -Wextra -Os $(INCS) -DVERSION=\"$(VERSION)\"
-LDLIBS=-lxcb -lxcb-image -lxcb-cursor -lxcb-keysyms -lpng -lxcb-xkb
+LDLIBS=-lxcb -lxcb-image -lxcb-cursor -lxcb-keysyms -lm -lxcb-xkb
 LDFLAGS=-L/usr/X11R6/lib -s
 PREFIX=/usr/local
 MANPREFIX=$(PREFIX)/share/man

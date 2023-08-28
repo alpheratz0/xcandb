@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2022 <alpheratz99@protonmail.com>
+	Copyright (C) 2022-2023 <alpheratz99@protonmail.com>
 
 	This program is free software; you can redistribute it and/or modify it
 	under the terms of the GNU General Public License version 2 as published by
@@ -46,7 +46,7 @@ static xcb_point_t dbp, dcp, cbp, ccp, bbp, bcp;
 static int start_in_fullscreen, dragging, cropping, blurring;
 static int32_t wwidth, wheight;
 static uint32_t *wpx;
-struct canvas *canvas;
+Canvas_t *canvas;
 
 static xcb_atom_t
 get_atom(const char *name)
@@ -85,7 +85,7 @@ create_window(void)
 	ctcross = xcb_cursor_load_cursor(cctx, "tcross");
 	wwidth = 800, wheight = 600;
 
-	if (NULL == (wpx = calloc(wwidth * wheight, sizeof(uint32_t))))
+	if (NULL == (wpx = xcalloc(wwidth * wheight, sizeof(uint32_t))))
 		die("error while calling malloc, no memory available");
 
 	ksyms = xcb_key_symbols_alloc(conn);
@@ -192,6 +192,7 @@ static void
 draw(void)
 {
 	int32_t x, y, ox, oy;
+	unsigned char *cpx;
 
 	memset(wpx, 0, sizeof(uint32_t) * wwidth * wheight);
 
@@ -204,7 +205,10 @@ draw(void)
 		for (x = 0; x < canvas->width; ++x) {
 			if ((x+ox) < 0 || (x+ox) >= wwidth)
 				continue;
-			wpx[(y+oy)*wwidth+(x+ox)] = canvas->pixels[y*canvas->width+x];
+
+			cpx = &canvas->px[(y*canvas->width+x)*4];
+
+			wpx[(y+oy)*wwidth+(x+ox)] = (cpx[0] << 16) | (cpx[1] << 8) | (cpx[2]);
 		}
 	}
 
@@ -371,7 +375,7 @@ h_client_message(xcb_client_message_event_t *ev)
 	/* https://www.x.org/docs/ICCCM/icccm.pdf */
 	if (ev->data.data32[0] == get_atom("WM_DELETE_WINDOW")) {
 		destroy_window();
-		canvas_destroy(canvas);
+		canvas_free(canvas);
 		exit(0);
 	}
 }
@@ -518,7 +522,7 @@ main(int argc, char **argv)
 	}
 
 	destroy_window();
-	canvas_destroy(canvas);
+	canvas_free(canvas);
 
 	return 0;
 }

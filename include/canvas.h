@@ -19,32 +19,25 @@
 #ifndef __XCANDB_CANVAS_H__
 #define __XCANDB_CANVAS_H__
 
-#include <stdint.h>
-
-struct canvas {
+typedef struct Canvas Canvas_t;
+struct Canvas {
 	int width, height;
-	uint32_t *pixels;
+	unsigned char *px;
 };
 
-extern struct canvas *
-canvas_create(int width, int height);
-
-extern struct canvas *
+extern Canvas_t *
 canvas_load(const char *path);
 
 extern void
-canvas_save(struct canvas *canvas, const char *path);
+canvas_save(Canvas_t *c, const char *path);
 
 extern void
-canvas_crop(struct canvas *canvas, int x, int y,
-            int width, int height);
+canvas_crop(Canvas_t *c, int x, int y, int w, int h);
 
 extern void
-canvas_blur(struct canvas *canvas, int x, int y,
-            int width, int height, int strength);
+canvas_blur(Canvas_t *c, int x, int y, int w, int h, int strength);
 
 extern void
-canvas_destroy(struct canvas *canvas);
-
+canvas_free(Canvas_t *c);
 
 #endif
