@@ -410,15 +410,15 @@ static void
 h_button_press(xcb_button_press_event_t *ev)
 {
 	switch (ev->detail) {
-		case XCB_BUTTON_INDEX_1:
-			crop_begin(ev->event_x, ev->event_y);
-			break;
-		case XCB_BUTTON_INDEX_2:
-			drag_begin(ev->event_x, ev->event_y);
-			break;
-		case XCB_BUTTON_INDEX_3:
-			blur_begin(ev->event_x, ev->event_y);
-			break;
+	case XCB_BUTTON_INDEX_1:
+		crop_begin(ev->event_x, ev->event_y);
+		break;
+	case XCB_BUTTON_INDEX_2:
+		drag_begin(ev->event_x, ev->event_y);
+		break;
+	case XCB_BUTTON_INDEX_3:
+		blur_begin(ev->event_x, ev->event_y);
+		break;
 	}
 }
 
@@ -437,15 +437,15 @@ static void
 h_button_release(xcb_button_release_event_t *ev)
 {
 	switch (ev->detail) {
-		case XCB_BUTTON_INDEX_1:
-			crop_end();
-			break;
-		case XCB_BUTTON_INDEX_2:
-			drag_end();
-			break;
-		case XCB_BUTTON_INDEX_3:
-			blur_end();
-			break;
+	case XCB_BUTTON_INDEX_1:
+		crop_end();
+		break;
+	case XCB_BUTTON_INDEX_2:
+		drag_end();
+		break;
+	case XCB_BUTTON_INDEX_3:
+		blur_end();
+		break;
 	}
 }
 
@@ -488,11 +488,11 @@ main(int argc, char **argv)
 	while (++argv, --argc > 0) {
 		if ((*argv)[0] == '-' && (*argv)[1] != '\0' && (*argv)[2] == '\0') {
 			switch ((*argv)[1]) {
-				case 'h': usage(); break;
-				case 'v': version(); break;
-				case 'f': start_in_fullscreen = 1; break;
-				case 'l': --argc; loadpath = enotnull(*++argv, "path"); break;
-				default: die("invalid option %s", *argv); break;
+			case 'h': usage(); break;
+			case 'v': version(); break;
+			case 'f': start_in_fullscreen = 1; break;
+			case 'l': --argc; loadpath = enotnull(*++argv, "path"); break;
+			default: die("invalid option %s", *argv); break;
 			}
 		} else {
 			die("unexpected argument: %s", *argv);
@@ -508,14 +508,14 @@ main(int argc, char **argv)
 
 	while ((ev = xcb_wait_for_event(conn))) {
 		switch (ev->response_type & ~0x80) {
-			case XCB_CLIENT_MESSAGE:     h_client_message((void *)(ev)); break;
-			case XCB_EXPOSE:             h_expose((void *)(ev)); break;
-			case XCB_KEY_PRESS:          h_key_press((void *)(ev)); break;
-			case XCB_BUTTON_PRESS:       h_button_press((void *)(ev)); break;
-			case XCB_MOTION_NOTIFY:      h_motion_notify((void *)(ev)); break;
-			case XCB_BUTTON_RELEASE:     h_button_release((void *)(ev)); break;
-			case XCB_CONFIGURE_NOTIFY:   h_configure_notify((void *)(ev)); break;
-			case XCB_MAPPING_NOTIFY:     h_mapping_notify((void *)(ev)); break;
+		case XCB_CLIENT_MESSAGE:     h_client_message((void *)(ev)); break;
+		case XCB_EXPOSE:             h_expose((void *)(ev)); break;
+		case XCB_KEY_PRESS:          h_key_press((void *)(ev)); break;
+		case XCB_BUTTON_PRESS:       h_button_press((void *)(ev)); break;
+		case XCB_MOTION_NOTIFY:      h_motion_notify((void *)(ev)); break;
+		case XCB_BUTTON_RELEASE:     h_button_release((void *)(ev)); break;
+		case XCB_CONFIGURE_NOTIFY:   h_configure_notify((void *)(ev)); break;
+		case XCB_MAPPING_NOTIFY:     h_mapping_notify((void *)(ev)); break;
 		}
 
 		free(ev);
