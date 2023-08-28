@@ -27,6 +27,18 @@ load image from path
 .It crop and blur a freshly taken screenshot
 xcandb -f -l $(xscreenshot -p -d $(mktemp -d))
 .El
+.Sh KEYBOARD BINDINGS
+.Bl -tag -width indent
+.It Ctrl+s
+Save result image to disk.
+.El
+.Sh MOUSE BINDINGS
+.Bl -tag -width indent
+.It Left Mouse Button
+Crop.
+.It Right Mouse Button
+Blur.
+.El
 .Sh SEE ALSO
 .Xr X 7
 .Xr xscreenshot 1
