@@ -16,8 +16,7 @@
 
 */
 
-#ifndef __XCANDB_CANVAS_H__
-#define __XCANDB_CANVAS_H__
+#pragma once
 
 typedef struct Canvas Canvas_t;
 struct Canvas {
@@ -39,5 +38,3 @@ canvas_blur(Canvas_t *c, int x, int y, int w, int h, int strength);
 
 extern void
 canvas_free(Canvas_t *c);
-
-#endif

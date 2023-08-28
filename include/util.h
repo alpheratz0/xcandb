@@ -16,8 +16,7 @@
 
 */
 
-#ifndef __XCANDB_UTIL_H__
-#define __XCANDB_UTIL_H__
+#pragma once
 
 extern void
 die(const char *fmt, ...);
@@ -33,5 +32,3 @@ xmalloc(size_t size);
 
 extern void *
 xcalloc(size_t nmemb, size_t size);
-
-#endif
