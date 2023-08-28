@@ -3,9 +3,9 @@
 
 VERSION=0.2.0
 CC=cc
-INCS=-I/usr/X11R6/include -I.
+INCS=-I/usr/X11R6/include -Iinclude
 CFLAGS=-std=c99 -pedantic -Wall -Wextra -Os $(INCS) -DVERSION=\"$(VERSION)\"
-LDLIBS=-lxcb -lxcb-image -lxcb-cursor -lxcb-keysyms -lxcb-icccm -lpng -lxcb-xkb -lsaveas
-LDFLAGS=-L/usr/X11R6/lib -L./libsaveas -s
+LDLIBS=-lxcb -lxcb-image -lxcb-cursor -lxcb-keysyms -lxcb-icccm -lpng -lxcb-xkb
+LDFLAGS=-L/usr/X11R6/lib -s
 PREFIX=/usr/local
 MANPREFIX=$(PREFIX)/share/man

@@ -26,9 +26,9 @@
 #include <xcb/xproto.h>
 #include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
-#include <saveas/saveas.h>
 #include "util.h"
 #include "canvas.h"
+#include "prompt.h"
 
 #define UNUSED __attribute__((unused))
 #define MIN(a,b) ((a)<(b)?(a):(b))
@@ -385,14 +385,15 @@ h_expose(UNUSED xcb_expose_event_t *ev)
 static void
 h_key_press(xcb_key_press_event_t *ev)
 {
-	const char *savepath;
+	char *savepath;
 	xcb_keysym_t key;
 
 	key = xcb_key_symbols_get_keysym(ksyms, ev->detail, 0);
 
 	if ((ev->state & XCB_MOD_MASK_CONTROL) && key == XKB_KEY_s) {
-		if (saveas_show_popup(&savepath) == SAVEAS_STATUS_OK)
+		if (NULL != (savepath = prompt_read("save as...")))
 			canvas_save(canvas, savepath);
+		free(savepath);
 	} else if (key == XKB_KEY_Escape) {
 		cropping = blurring = 0;
 		xcb_change_window_attributes(conn, window, XCB_CW_CURSOR, &carrow);

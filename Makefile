@@ -3,16 +3,19 @@
 
 include config.mk
 
+OBJ=\
+	src/xcandb.o \
+	src/canvas.o \
+	src/prompt.o \
+	src/util.o
+
 all: xcandb
 
-util.o: util.c util.h
-canvas.o: canvas.c canvas.h
-
-xcandb: xcandb.o canvas.o util.o
-	$(CC) $(LDFLAGS) -o xcandb xcandb.o canvas.o util.o $(LDLIBS)
+xcandb: $(OBJ)
+	$(CC) $(LDFLAGS) -o xcandb $(OBJ) $(LDLIBS)
 
 clean:
-	rm -f xcandb xcandb.o canvas.o util.o xcandb-$(VERSION).tar.gz
+	rm -f xcandb $(OBJ) xcandb-$(VERSION).tar.gz
 
 install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
@@ -24,7 +27,8 @@ install: all
 
 dist: clean
 	mkdir -p xcandb-$(VERSION)
-	cp -R COPYING config.mk Makefile README xcandb.1 xcandb.c xcandb-$(VERSION)
+	cp -R COPYING config.mk Makefile README xcandb.1 src include \
+		xcandb-$(VERSION)
 	tar -cf xcandb-$(VERSION).tar xcandb-$(VERSION)
 	gzip xcandb-$(VERSION).tar
 	rm -rf xcandb-$(VERSION)

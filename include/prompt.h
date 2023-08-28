@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2022 <alpheratz99@protonmail.com>
+	Copyright (C) 2023 <alpheratz99@protonmail.com>
 
 	This program is free software; you can redistribute it and/or modify it
 	under the terms of the GNU General Public License version 2 as published by
@@ -16,40 +16,7 @@
 
 */
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include "util.h"
+#pragma once
 
-extern void
-die(const char *fmt, ...)
-{
-	va_list args;
-
-	fputs("xcandb: ", stderr);
-	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	va_end(args);
-	fputc('\n', stderr);
-	exit(1);
-}
-
-extern void
-warn(const char *fmt, ...)
-{
-	va_list args;
-
-	fputs("xcandb: ", stderr);
-	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	va_end(args);
-	fputc('\n', stderr);
-}
-
-extern const char *
-enotnull(const char *str, const char *name)
-{
-	if (NULL == str)
-		die("%s cannot be null", name);
-	return str;
-}
+extern char *
+prompt_read(const char *prompt);
