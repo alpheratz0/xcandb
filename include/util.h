@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2022 <alpheratz99@protonmail.com>
+	Copyright (C) 2022-2023 <alpheratz99@protonmail.com>
 
 	This program is free software; you can redistribute it and/or modify it
 	under the terms of the GNU General Public License version 2 as published by
@@ -27,5 +27,11 @@ warn(const char *fmt, ...);
 
 extern const char *
 enotnull(const char *str, const char *name);
+
+extern void *
+xmalloc(size_t size);
+
+extern void *
+xcalloc(size_t nmemb, size_t size);
 
 #endif

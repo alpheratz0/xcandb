@@ -53,3 +53,21 @@ enotnull(const char *str, const char *name)
 		die("%s cannot be null", name);
 	return str;
 }
+
+extern void *
+xmalloc(size_t size)
+{
+	void *ptr;
+	if (NULL == (ptr = malloc(size)))
+		die("OOM");
+	return ptr;
+}
+
+extern void *
+xcalloc(size_t nmemb, size_t size)
+{
+	void *ptr;
+	if (NULL == (ptr = calloc(nmemb, size)))
+		die("OOM");
+	return ptr;
+}
