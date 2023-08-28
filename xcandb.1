@@ -2,7 +2,7 @@
 .Dt XCANDB 1
 .Sh NAME
 .Nm xcandb
-.Nd png crop and blur utility for X
+.Nd image crop and blur utility for X
 .Sh SYNOPSIS
 .Nm
 .Op Fl fhv
@@ -10,7 +10,7 @@
 .Sh DESCRIPTION
 The
 .Nm
-application lets you crop png images with ease.
+application lets you crop images with ease.
 .Sh OPTIONS
 .Bl -tag -width indent
 .It Fl f
@@ -20,7 +20,7 @@ show usage
 .It Fl v
 display the program version
 .It Fl l
-load png file
+load image from path
 .El
 .Sh EXAMPLES
 .Bl -tag -width indent
@@ -29,7 +29,6 @@ xcandb -f -l $(xscreenshot -p -d $(mktemp -d))
 .El
 .Sh SEE ALSO
 .Xr X 7
-.Xr png 5
 .Xr xscreenshot 1
 .Xr imgcrop 1
 .Sh AUTHORS
