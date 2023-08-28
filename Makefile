@@ -8,7 +8,7 @@ OBJ=\
 	src/canvas.o \
 	src/prompt.o \
 	src/notify.o \
-	src/util.o
+	src/utils.o
 
 all: xcandb
 

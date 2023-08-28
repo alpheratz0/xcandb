@@ -20,7 +20,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "util.h"
+#include "utils.h"
 
 extern void
 die(const char *fmt, ...)

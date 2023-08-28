@@ -22,7 +22,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "util.h"
+#include "utils.h"
 #include "prompt.h"
 
 extern char *

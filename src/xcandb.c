@@ -28,7 +28,7 @@
 #include <xkbcommon/xkbcommon-keysyms.h>
 #include <xcb/xkb.h>
 
-#include "util.h"
+#include "utils.h"
 #include "canvas.h"
 #include "prompt.h"
 #include "notify.h"

@@ -20,7 +20,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#include "util.h"
+#include "utils.h"
 #include "notify.h"
 
 extern void

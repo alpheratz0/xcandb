@@ -24,7 +24,7 @@
 #include <xcb/shm.h>
 #include <sys/shm.h>
 #include "canvas.h"
-#include "util.h"
+#include "utils.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "vendor/stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
