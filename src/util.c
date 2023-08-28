@@ -16,6 +16,7 @@
 
 */
 
+#include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,4 +71,21 @@ xcalloc(size_t nmemb, size_t size)
 	if (NULL == (ptr = calloc(nmemb, size)))
 		die("OOM");
 	return ptr;
+}
+
+extern char *
+xstrdup(const char *str)
+{
+	char *res;
+	size_t str_len;
+
+	if (!str)
+		return NULL;
+
+	str_len = strlen(str);
+	res = xmalloc(strlen(str) + 1);
+	memcpy(res, str, str_len);
+	res[str_len] = '\0';
+
+	return res;
 }

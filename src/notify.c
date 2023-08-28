@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2022-2023 <alpheratz99@protonmail.com>
+	Copyright (C) 2023 <alpheratz99@protonmail.com>
 
 	This program is free software; you can redistribute it and/or modify it
 	under the terms of the GNU General Public License version 2 as published by
@@ -16,22 +16,28 @@
 
 */
 
-#pragma once
+#include <sys/wait.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+#include "util.h"
+#include "notify.h"
 
 extern void
-die(const char *fmt, ...);
+notify_send(const char *title, const char *body)
+{
+	pid_t pid;
+	int status;
 
-extern void
-warn(const char *fmt, ...);
+	if ((pid = fork()) < 0)
+		die("fork failed");
 
-extern const char *
-enotnull(const char *str, const char *name);
-
-extern void *
-xmalloc(size_t size);
-
-extern void *
-xcalloc(size_t nmemb, size_t size);
-
-extern char *
-xstrdup(const char *str);
+	if (pid == 0) {
+		execlp("notify-send", "notify-send", title, body, (char *)(NULL));
+		warn("execlp() notify-send failed");
+		exit(127);
+	} else {
+		if (waitpid(pid, &status, 0) < 0)
+			die("waitpid");
+	}
+}

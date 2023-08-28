@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2022 <alpheratz99@protonmail.com>
+	Copyright (C) 2022-2023 <alpheratz99@protonmail.com>
 
 	This program is free software; you can redistribute it and/or modify it
 	under the terms of the GNU General Public License version 2 as published by
@@ -18,14 +18,13 @@
 
 #pragma once
 
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
+
 typedef struct Canvas Canvas_t;
-struct Canvas {
-	int width, height;
-	unsigned char *px;
-};
 
 extern Canvas_t *
-canvas_load(const char *path);
+canvas_load(xcb_connection_t *conn, xcb_window_t win, const char *path);
 
 extern void
 canvas_save(Canvas_t *c, const char *path);
@@ -35,6 +34,21 @@ canvas_crop(Canvas_t *c, int x, int y, int w, int h);
 
 extern void
 canvas_blur(Canvas_t *c, int x, int y, int w, int h, int strength);
+
+extern void
+canvas_camera_move_relative(Canvas_t *c, int offx, int offy);
+
+extern void
+canvas_camera_to_center(Canvas_t *c);
+
+extern void
+canvas_set_viewport(Canvas_t *c, int vw, int vh);
+
+extern void
+canvas_render(Canvas_t *c);
+
+extern void
+canvas_camera_to_canvas_pos(Canvas_t *c, int x, int y, int *out_x, int *out_y);
 
 extern void
 canvas_free(Canvas_t *c);
