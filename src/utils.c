@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include "utils.h"
@@ -138,4 +139,37 @@ xprompt(const char *prompt)
 		*nlpos = '\0';
 
 	return output;
+}
+
+extern bool
+is_writeable(const char *path)
+{
+	FILE *fp;
+
+	if (NULL == (fp = fopen(path, "w")))
+		return false;
+	fclose(fp);
+	return true;
+}
+
+extern char *
+expand_path(const char *path)
+{
+	char *home, *expanded;
+
+	if (!path)
+		return NULL;
+
+	if (path[0] != '~')
+		return xstrdup(path);
+
+	home = getenv("HOME");
+
+	if (home == NULL)
+		return xstrdup(path);
+
+	expanded = xmalloc(strlen(home) + strlen(path));
+	sprintf(expanded, "%s%s", home, path+1);
+
+	return expanded;
 }

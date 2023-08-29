@@ -16,6 +16,7 @@
 
 */
 
+#include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <xcb/xcb.h>
@@ -23,13 +24,12 @@
 #include <xcb/xcb_image.h>
 #include <xcb/shm.h>
 #include <sys/shm.h>
+
+#include "stb/stb_image.h"
+#include "stb/stb_image_write.h"
 #include "canvas.h"
 #include "utils.h"
 #include "log.h"
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.h"
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb/stb_image_write.h"
 
 #define RED(c) ((c>>16) & 0xff)
 #define GREEN(c) ((c>>8) & 0xff)
@@ -111,6 +111,52 @@ __x_check_mit_shm_extension(xcb_connection_t *conn)
 }
 
 static void
+__canvas_set_size(Canvas_t *c, int w, int h)
+{
+	c->width = w;
+	c->height = h;
+
+	if (c->shm) {
+		if (c->px) {
+			shmctl(c->x.shm.id, IPC_RMID, NULL);
+			xcb_shm_detach(c->conn, c->x.shm.seg);
+			shmdt(c->px);
+			xcb_free_pixmap(c->conn, c->x.shm.pixmap);
+		}
+
+		c->x.shm.seg = xcb_generate_id(c->conn);
+		c->x.shm.pixmap = xcb_generate_id(c->conn);
+		c->x.shm.id = shmget(IPC_PRIVATE, w*h*4, IPC_CREAT | 0600);
+
+		if (c->x.shm.id < 0)
+			die("shmget failed");
+
+		c->px = shmat(c->x.shm.id, NULL, 0);
+
+		if (c->px == (void *) -1) {
+			shmctl(c->x.shm.id, IPC_RMID, NULL);
+			die("shmat failed");
+		}
+
+		xcb_shm_attach(c->conn, c->x.shm.seg, c->x.shm.id, 0);
+		shmctl(c->x.shm.id, IPC_RMID, NULL);
+
+		xcb_shm_create_pixmap(c->conn, c->x.shm.pixmap, c->win, w, h,
+				c->scr->root_depth, c->x.shm.seg, 0);
+	} else {
+		if (c->px) {
+			xcb_image_destroy(c->x.image);
+		}
+
+		c->px = xmalloc(w*h*4);
+
+		c->x.image = xcb_image_create_native(c->conn, w, h,
+				XCB_IMAGE_FORMAT_Z_PIXMAP, c->scr->root_depth, c->px,
+				w*h*4, (uint8_t*)c->px);
+	}
+}
+
+static void
 __canvas_keep_visible(Canvas_t *c)
 {
 	if (c->pos.x > c->width)
@@ -131,7 +177,6 @@ canvas_load(xcb_connection_t *conn, xcb_window_t win, const char *path)
 {
 	int x, y, w, h;
 	xcb_screen_t *scr;
-	uint8_t depth;
 	unsigned char *px;
 	Canvas_t *c;
 
@@ -145,49 +190,18 @@ canvas_load(xcb_connection_t *conn, xcb_window_t win, const char *path)
 	if (NULL == scr)
 		die("can't get default screen");
 
-	depth = scr->root_depth;
-
 	c = xcalloc(1, sizeof(Canvas_t));
 
 	c->conn = conn;
 	c->win = win;
-	c->width = w;
-	c->height = h;
 	c->scr = scr;
 
 	c->gc = xcb_generate_id(conn);
+	c->shm = __x_check_mit_shm_extension(conn) ? 1 : 0;
+
 	xcb_create_gc(conn, c->gc, win, 0, NULL);
 
-	if (__x_check_mit_shm_extension(conn)) {
-		c->shm = 1;
-
-		c->x.shm.seg = xcb_generate_id(conn);
-		c->x.shm.pixmap = xcb_generate_id(conn);
-		c->x.shm.id = shmget(IPC_PRIVATE, w*h*4, IPC_CREAT | 0600);
-
-		if (c->x.shm.id < 0)
-			die("shmget failed");
-
-		c->px = shmat(c->x.shm.id, NULL, 0);
-
-		if (c->px == (void *) -1) {
-			shmctl(c->x.shm.id, IPC_RMID, NULL);
-			die("shmat failed");
-		}
-
-		xcb_shm_attach(conn, c->x.shm.seg, c->x.shm.id, 0);
-		shmctl(c->x.shm.id, IPC_RMID, NULL);
-
-		xcb_shm_create_pixmap(conn, c->x.shm.pixmap, win, w, h,
-				depth, c->x.shm.seg, 0);
-	} else {
-		c->shm = 0;
-		c->px = xmalloc(w*h*4);
-
-		c->x.image = xcb_image_create_native(conn, w, h,
-				XCB_IMAGE_FORMAT_Z_PIXMAP, depth, c->px,
-				w*h*4, (uint8_t*)c->px);
-	}
+	__canvas_set_size(c, w, h);
 
 	for (y = 0; y < h; ++y)
 		for (x = 0; x < w; ++x)
@@ -240,43 +254,7 @@ canvas_crop(Canvas_t *c, int x, int y, int w, int h)
 		);
 	}
 
-	c->width = w;
-	c->height = h;
-
-	if (c->shm) {
-		shmctl(c->x.shm.id, IPC_RMID, NULL);
-		xcb_shm_detach(c->conn, c->x.shm.seg);
-		shmdt(c->px);
-		xcb_free_pixmap(c->conn, c->x.shm.pixmap);
-
-		c->x.shm.seg = xcb_generate_id(c->conn);
-		c->x.shm.pixmap = xcb_generate_id(c->conn);
-		c->x.shm.id = shmget(IPC_PRIVATE, w*h*4, IPC_CREAT | 0600);
-
-		if (c->x.shm.id < 0)
-			die("shmget failed");
-
-		c->px = shmat(c->x.shm.id, NULL, 0);
-
-		if (c->px == (void *) -1) {
-			shmctl(c->x.shm.id, IPC_RMID, NULL);
-			die("shmat failed");
-		}
-
-		xcb_shm_attach(c->conn, c->x.shm.seg, c->x.shm.id, 0);
-		shmctl(c->x.shm.id, IPC_RMID, NULL);
-
-		xcb_shm_create_pixmap(c->conn, c->x.shm.pixmap, c->win, w, h,
-				c->scr->root_depth, c->x.shm.seg, 0);
-	} else {
-		xcb_image_destroy(c->x.image);
-
-		c->px = xmalloc(w*h*4);
-
-		c->x.image = xcb_image_create_native(c->conn, w, h,
-				XCB_IMAGE_FORMAT_Z_PIXMAP, c->scr->root_depth, c->px,
-				w*h*4, (uint8_t*)c->px);
-	}
+	__canvas_set_size(c, w, h);
 
 	memcpy(c->px, crop_area, w*h*4);
 	free(crop_area);

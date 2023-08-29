@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2022-2023 <alpheratz99@protonmail.com>
+	Copyright (C) 2023 <alpheratz99@protonmail.com>
 
 	This program is free software; you can redistribute it and/or modify it
 	under the terms of the GNU General Public License version 2 as published by
@@ -16,28 +16,7 @@
 
 */
 
-#pragma once
-
-#include <stdbool.h>
-#include <stddef.h>
-
-extern const char *
-enotnull(const char *str, const char *name);
-
-extern void *
-xmalloc(size_t size);
-
-extern void *
-xcalloc(size_t nmemb, size_t size);
-
-extern char *
-xstrdup(const char *str);
-
-extern char *
-xprompt(const char *prompt);
-
-extern bool
-is_writeable(const char *path);
-
-extern char *
-expand_path(const char *path);
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb/stb_image_write.h"

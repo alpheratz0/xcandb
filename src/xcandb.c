@@ -203,39 +203,6 @@ xwindestroy(void)
 	xcb_disconnect(conn);
 }
 
-static bool
-can_write_to(const char *path)
-{
-	FILE *fp;
-
-	if (NULL == (fp = fopen(path, "w")))
-		return false;
-	fclose(fp);
-	return true;
-}
-
-static char *
-expand_path(const char *path)
-{
-	char *home, *expanded;
-
-	if (!path)
-		return NULL;
-
-	if (path[0] != '~')
-		return xstrdup(path);
-
-	home = getenv("HOME");
-
-	if (home == NULL)
-		return xstrdup(path);
-
-	expanded = xmalloc(strlen(home) + strlen(path));
-	sprintf(expanded, "%s%s", home, path+1);
-
-	return expanded;
-}
-
 static void
 save(void)
 {
@@ -248,7 +215,7 @@ save(void)
 
 	expanded_path = expand_path(path);
 
-	if (can_write_to(expanded_path)) {
+	if (is_writeable(expanded_path)) {
 		canvas_save(canvas, expanded_path);
 		info("saved drawing succesfully to %s", path);
 	} else {
@@ -257,44 +224,6 @@ save(void)
 
 	free(path);
 	free(expanded_path);
-}
-
-static void
-h_client_message(xcb_client_message_event_t *ev)
-{
-	xcb_atom_t WM_DELETE_WINDOW;
-
-	WM_DELETE_WINDOW = get_x11_atom("WM_DELETE_WINDOW");
-
-	/* check if the wm sent a delete window message */
-	/* https://www.x.org/docs/ICCCM/icccm.pdf */
-	if (ev->data.data32[0] == WM_DELETE_WINDOW)
-		should_close = true;
-}
-
-static void
-h_expose(xcb_expose_event_t *ev)
-{
-	(void) ev;
-	canvas_render(canvas);
-}
-
-static void
-h_key_press(xcb_key_press_event_t *ev)
-{
-	xcb_keysym_t key;
-
-	key = xcb_key_symbols_get_keysym(ksyms, ev->detail, 0);
-
-	if (ev->state & XCB_MOD_MASK_CONTROL) {
-		switch (key) {
-		case XKB_KEY_s: save(); return;
-		}
-	}
-
-	crop.active = blur.active = false;
-	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_arrow);
-	canvas_render(canvas);
 }
 
 static void
@@ -462,6 +391,44 @@ blur_end(void)
 	canvas_render(canvas);
 
 	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_arrow);
+}
+
+static void
+h_client_message(xcb_client_message_event_t *ev)
+{
+	xcb_atom_t WM_DELETE_WINDOW;
+
+	WM_DELETE_WINDOW = get_x11_atom("WM_DELETE_WINDOW");
+
+	/* check if the wm sent a delete window message */
+	/* https://www.x.org/docs/ICCCM/icccm.pdf */
+	if (ev->data.data32[0] == WM_DELETE_WINDOW)
+		should_close = true;
+}
+
+static void
+h_expose(xcb_expose_event_t *ev)
+{
+	(void) ev;
+	canvas_render(canvas);
+}
+
+static void
+h_key_press(xcb_key_press_event_t *ev)
+{
+	xcb_keysym_t key;
+
+	key = xcb_key_symbols_get_keysym(ksyms, ev->detail, 0);
+
+	if (ev->state & XCB_MOD_MASK_CONTROL) {
+		switch (key) {
+		case XKB_KEY_s: save(); return;
+		}
+	}
+
+	crop.active = blur.active = false;
+	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_arrow);
+	canvas_render(canvas);
 }
 
 static void
