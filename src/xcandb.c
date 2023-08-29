@@ -215,7 +215,7 @@ save(void)
 		info("could not expand path");
 	} else if (path_is_writeable(expanded_path)) {
 		canvas_save(canvas, expanded_path);
-		info("saved drawing succesfully to %s", path);
+		info("saved image succesfully to %s", path);
 	} else {
 		info("can't save to %s", path);
 	}
