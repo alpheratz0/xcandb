@@ -7,6 +7,7 @@ OBJ=\
 	src/xcandb.o \
 	src/canvas.o \
 	src/log.o \
+	src/stb.o \
 	src/utils.o
 
 all: xcandb
