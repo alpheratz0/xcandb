@@ -6,8 +6,7 @@ include config.mk
 OBJ=\
 	src/xcandb.o \
 	src/canvas.o \
-	src/prompt.o \
-	src/notify.o \
+	src/log.o \
 	src/utils.o
 
 all: xcandb
