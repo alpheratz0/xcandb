@@ -147,6 +147,11 @@ __canvas_set_size(Canvas_t *c, int w, int h)
 		if (c->px)
 			xcb_image_destroy(c->x.image);
 
+		// FIXME: split source image into
+		//        multiple xcb_image_t objects
+		if (w*h*4 > 16*1024*1024 /* 16mb */)
+			die("image too big for one xcb_image_t");
+
 		c->px = xmalloc(w*h*4);
 
 		c->x.image = xcb_image_create_native(c->conn, w, h,
