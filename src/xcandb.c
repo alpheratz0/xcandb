@@ -426,9 +426,13 @@ h_key_press(xcb_key_press_event_t *ev)
 		}
 	}
 
-	crop.active = blur.active = false;
-	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_arrow);
-	canvas_render(canvas);
+	switch (key) {
+	case XKB_KEY_Escape:
+		crop.active = blur.active = false;
+		xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_arrow);
+		canvas_render(canvas);
+		break;
+	}
 }
 
 static void
