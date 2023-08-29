@@ -19,7 +19,6 @@
 #pragma once
 
 #include <xcb/xcb.h>
-#include <xcb/xproto.h>
 
 typedef struct Canvas Canvas_t;
 

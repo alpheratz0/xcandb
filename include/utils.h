@@ -18,11 +18,7 @@
 
 #pragma once
 
-extern void
-die(const char *fmt, ...);
-
-extern void
-warn(const char *fmt, ...);
+#include <stddef.h>
 
 extern const char *
 enotnull(const char *str, const char *name);
@@ -35,3 +31,6 @@ xcalloc(size_t nmemb, size_t size);
 
 extern char *
 xstrdup(const char *str);
+
+extern char *
+xprompt(const char *prompt);

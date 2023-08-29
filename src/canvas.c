@@ -25,10 +25,11 @@
 #include <sys/shm.h>
 #include "canvas.h"
 #include "utils.h"
+#include "log.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "vendor/stb_image.h"
+#include "stb/stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "vendor/stb_image_write.h"
+#include "stb/stb_image_write.h"
 
 #define RED(c) ((c>>16) & 0xff)
 #define GREEN(c) ((c>>8) & 0xff)

@@ -30,8 +30,7 @@
 
 #include "utils.h"
 #include "canvas.h"
-#include "prompt.h"
-#include "notify.h"
+#include "log.h"
 
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #define MAX(a,b) ((a)>(b)?(a):(b))
@@ -40,19 +39,19 @@ typedef struct {
 	bool active;
 	int x;
 	int y;
-} DragInfo;
+} DragInfo_t;
 
 typedef struct {
 	bool active;
 	xcb_point_t start;
 	xcb_point_t end;
-} CropInfo;
+} CropInfo_t;
 
 typedef struct {
 	bool active;
 	xcb_point_t start;
 	xcb_point_t end;
-} BlurInfo;
+} BlurInfo_t;
 
 static Canvas_t *canvas;
 static xcb_connection_t *conn;
@@ -64,9 +63,9 @@ static xcb_cursor_context_t *cctx;
 static xcb_cursor_t cursor_hand;
 static xcb_cursor_t cursor_arrow;
 static xcb_cursor_t cursor_crosshair;
-static DragInfo draginfo;
-static CropInfo cropinfo;
-static BlurInfo blurinfo;
+static DragInfo_t drag;
+static CropInfo_t crop;
+static BlurInfo_t blur;
 static bool start_in_fullscreen;
 static bool should_close;
 
@@ -135,7 +134,7 @@ xwininit(void)
 		800, 600, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT,
 		scr->root_visual, XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK,
 		(const xcb_create_window_value_list_t []) {{
-			.background_pixel = 0x0e0e0e,
+			.background_pixel = 0x1e1e1e,
 			.event_mask = XCB_EVENT_MASK_EXPOSURE |
 			              XCB_EVENT_MASK_KEY_PRESS |
 			              XCB_EVENT_MASK_BUTTON_PRESS |
@@ -241,9 +240,8 @@ static void
 save(void)
 {
 	char *path, *expanded_path;
-	char err_msg[256], suc_msg[256];
 
-	path = prompt_read("save as...");
+	path = xprompt("save as...");
 
 	if (!path)
 		return;
@@ -252,11 +250,9 @@ save(void)
 
 	if (can_write_to(expanded_path)) {
 		canvas_save(canvas, expanded_path);
-		snprintf(suc_msg, sizeof(suc_msg), "saved drawing succesfully to %s", path);
-		notify_send("xcandb", suc_msg);
+		info("saved drawing succesfully to %s", path);
 	} else {
-		snprintf(err_msg, sizeof(err_msg), "can't save to %s", path);
-		notify_send("xcandb", err_msg);
+		info("can't save to %s", path);
 	}
 
 	free(path);
@@ -296,7 +292,7 @@ h_key_press(xcb_key_press_event_t *ev)
 		}
 	}
 
-	cropinfo.active = blurinfo.active = false;
+	crop.active = blur.active = false;
 	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_arrow);
 	canvas_render(canvas);
 }
@@ -325,9 +321,11 @@ draw_dashed_rectangle(xcb_point_t a, xcb_point_t b)
 static void
 drag_begin(int16_t x, int16_t y)
 {
-	draginfo.active = true;
-	draginfo.x = x;
-	draginfo.y = y;
+	if (crop.active || blur.active)
+		return;
+	drag.active = true;
+	drag.x = x;
+	drag.y = y;
 	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_hand);
 	xcb_flush(conn);
 }
@@ -337,14 +335,14 @@ drag_update(int16_t x, int16_t y)
 {
 	int dx, dy;
 
-	if (!draginfo.active)
+	if (!drag.active)
 		return;
 
-	dx = draginfo.x - x;
-	dy = draginfo.y - y;
+	dx = drag.x - x;
+	dy = drag.y - y;
 
-	draginfo.x = x;
-	draginfo.y = y;
+	drag.x = x;
+	drag.y = y;
 
 	canvas_camera_move_relative(canvas, dx, dy);
 	canvas_render(canvas);
@@ -353,7 +351,10 @@ drag_update(int16_t x, int16_t y)
 static void
 drag_end(void)
 {
-	draginfo.active = false;
+	if (!drag.active)
+		return;
+
+	drag.active = false;
 	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_arrow);
 	xcb_flush(conn);
 }
@@ -361,10 +362,13 @@ drag_end(void)
 static void
 crop_begin(int16_t x, int16_t y)
 {
-	cropinfo.active = true;
+	if (drag.active || blur.active)
+		return;
 
-	cropinfo.start.x = cropinfo.end.x = x;
-	cropinfo.start.y = cropinfo.end.y = y;
+	crop.active = true;
+
+	crop.start.x = crop.end.x = x;
+	crop.start.y = crop.end.y = y;
 
 	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_crosshair);
 	xcb_flush(conn);
@@ -373,14 +377,14 @@ crop_begin(int16_t x, int16_t y)
 static void
 crop_update(int16_t x, int16_t y)
 {
-	if (!cropinfo.active)
+	if (!crop.active)
 		return;
 
-	cropinfo.end.x = x;
-	cropinfo.end.y = y;
+	crop.end.x = x;
+	crop.end.y = y;
 
 	canvas_render(canvas);
-	draw_dashed_rectangle(cropinfo.start, cropinfo.end);
+	draw_dashed_rectangle(crop.start, crop.end);
 	xcb_flush(conn);
 }
 
@@ -390,15 +394,15 @@ crop_end(void)
 	int x, y, width, height;
 	int rx, ry;
 
-	if (!cropinfo.active)
+	if (!crop.active)
 		return;
 
-	cropinfo.active = false;
+	crop.active = false;
 
-	x = MIN(cropinfo.start.x, cropinfo.end.x);
-	y = MIN(cropinfo.start.y, cropinfo.end.y);
-	width = MAX(cropinfo.start.x, cropinfo.end.x) - x;
-	height = MAX(cropinfo.start.y, cropinfo.end.y) - y;
+	x = MIN(crop.start.x, crop.end.x);
+	y = MIN(crop.start.y, crop.end.y);
+	width = MAX(crop.start.x, crop.end.x) - x;
+	height = MAX(crop.start.y, crop.end.y) - y;
 
 	canvas_camera_to_canvas_pos(canvas, x, y, &rx, &ry);
 	canvas_crop(canvas, rx, ry, width, height);
@@ -411,10 +415,13 @@ crop_end(void)
 static void
 blur_begin(int16_t x, int16_t y)
 {
-	blurinfo.active = true;
+	if (drag.active || crop.active)
+		return;
 
-	blurinfo.start.x = blurinfo.end.x = x;
-	blurinfo.start.y = blurinfo.end.y = y;
+	blur.active = true;
+
+	blur.start.x = blur.end.x = x;
+	blur.start.y = blur.end.y = y;
 
 	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_crosshair);
 	xcb_flush(conn);
@@ -423,14 +430,14 @@ blur_begin(int16_t x, int16_t y)
 static void
 blur_update(int16_t x, int16_t y)
 {
-	if (!blurinfo.active)
+	if (!blur.active)
 		return;
 
-	blurinfo.end.x = x;
-	blurinfo.end.y = y;
+	blur.end.x = x;
+	blur.end.y = y;
 
 	canvas_render(canvas);
-	draw_dashed_rectangle(blurinfo.start, blurinfo.end);
+	draw_dashed_rectangle(blur.start, blur.end);
 	xcb_flush(conn);
 }
 
@@ -440,15 +447,15 @@ blur_end(void)
 	int x, y, width, height;
 	int rx, ry;
 
-	if (!blurinfo.active)
+	if (!blur.active)
 		return;
 
-	blurinfo.active = false;
+	blur.active = false;
 
-	x = MIN(blurinfo.start.x, blurinfo.end.x);
-	y = MIN(blurinfo.start.y, blurinfo.end.y);
-	width = MAX(blurinfo.start.x, blurinfo.end.x) - x;
-	height = MAX(blurinfo.start.y, blurinfo.end.y) - y;
+	x = MIN(blur.start.x, blur.end.x);
+	y = MIN(blur.start.y, blur.end.y);
+	width = MAX(blur.start.x, blur.end.x) - x;
+	height = MAX(blur.start.y, blur.end.y) - y;
 
 	canvas_camera_to_canvas_pos(canvas, x, y, &rx, &ry);
 	canvas_blur(canvas, rx, ry, width, height, 10);
@@ -476,11 +483,11 @@ h_button_press(xcb_button_press_event_t *ev)
 static void
 h_motion_notify(xcb_motion_notify_event_t *ev)
 {
-	if (draginfo.active)
+	if (drag.active)
 		drag_update(ev->event_x, ev->event_y);
-	if (cropinfo.active)
+	if (crop.active)
 		crop_update(ev->event_x, ev->event_y);
-	if (blurinfo.active)
+	if (blur.active)
 		blur_update(ev->event_x, ev->event_y);
 }
 

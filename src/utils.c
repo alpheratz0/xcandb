@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2022 <alpheratz99@protonmail.com>
+	Copyright (C) 2022-2023 <alpheratz99@protonmail.com>
 
 	This program is free software; you can redistribute it and/or modify it
 	under the terms of the GNU General Public License version 2 as published by
@@ -16,36 +16,14 @@
 
 */
 
-#include <string.h>
-#include <stdarg.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include "utils.h"
-
-extern void
-die(const char *fmt, ...)
-{
-	va_list args;
-
-	fputs("xcandb: ", stderr);
-	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	va_end(args);
-	fputc('\n', stderr);
-	exit(1);
-}
-
-extern void
-warn(const char *fmt, ...)
-{
-	va_list args;
-
-	fputs("xcandb: ", stderr);
-	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	va_end(args);
-	fputc('\n', stderr);
-}
+#include "log.h"
 
 extern const char *
 enotnull(const char *str, const char *name)
@@ -76,16 +54,88 @@ xcalloc(size_t nmemb, size_t size)
 extern char *
 xstrdup(const char *str)
 {
+	size_t len;
 	char *res;
-	size_t str_len;
 
-	if (!str)
-		return NULL;
+	res = NULL;
 
-	str_len = strlen(str);
-	res = xmalloc(strlen(str) + 1);
-	memcpy(res, str, str_len);
-	res[str_len] = '\0';
+	if (str) {
+		len = strlen(str);
+		res = xmalloc(len + 1);
+		memcpy(res, str, len);
+		res[len] = '\0';
+	}
 
 	return res;
+}
+
+extern char *
+xprompt(const char *prompt)
+{
+	int fds[2];
+	pid_t pid;
+	ssize_t count;
+	ssize_t total_read_count;
+	ssize_t left_to_read;
+	char *output, *nlpos;
+	int status;
+
+	if (pipe(fds) < 0)
+		die("pipe:");
+
+	pid = fork();
+
+	if (pid < 0)
+		die("fork:");
+
+	if (pid == 0) {
+		while ((dup2(fds[1], STDOUT_FILENO) == -1) && (errno == EINTR)) {}
+		freopen("/dev/null", "r", stdin);
+		close(fds[1]);
+		close(fds[0]);
+
+		execlp("dmenu", "dmenu", "-p", prompt, (char*)(NULL));
+		execlp("rofi", "rofi", "-dmenu", "-i", "-p", prompt, "-hint-welcome",
+				"", "-hint-result", "", (char*)(NULL));
+		_exit(127);
+	}
+
+	close(fds[1]);
+
+	total_read_count = 0;
+	left_to_read = 255;
+	output = xcalloc(left_to_read + 1, sizeof(char));
+
+	while (1) {
+		count = read(fds[0], &output[total_read_count], left_to_read);
+		if (count == -1) {
+			if (errno == EINTR) {
+				continue;
+			} else {
+				die("read:");
+			}
+		} else if (count == 0) {
+			break;
+		} else {
+			total_read_count += count;
+			left_to_read -= count;
+		}
+	}
+
+	close(fds[0]);
+
+	if (waitpid(pid, &status, 0) < 0)
+		die("waitpid:");
+
+	if (!WIFEXITED(status) || WEXITSTATUS(status) > 0) {
+		free(output);
+		return NULL;
+	}
+
+	nlpos = strchr(output, '\n');
+
+	if (nlpos)
+		*nlpos = '\0';
+
+	return output;
 }
