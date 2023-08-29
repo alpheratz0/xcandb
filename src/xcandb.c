@@ -208,14 +208,12 @@ save(void)
 {
 	char *path, *expanded_path;
 
-	path = xprompt("save as...");
-
-	if (!path)
+	if (NULL == (path = xprompt("save as...")))
 		return;
 
-	expanded_path = expand_path(path);
-
-	if (is_writeable(expanded_path)) {
+	if (NULL == (expanded_path = path_expand(path))) {
+		info("could not expand path");
+	} else if (path_is_writeable(expanded_path)) {
 		canvas_save(canvas, expanded_path);
 		info("saved drawing succesfully to %s", path);
 	} else {

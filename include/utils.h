@@ -37,7 +37,7 @@ extern char *
 xprompt(const char *prompt);
 
 extern bool
-is_writeable(const char *path);
+path_is_writeable(const char *path);
 
 extern char *
-expand_path(const char *path);
+path_expand(const char *path);

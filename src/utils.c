@@ -58,14 +58,13 @@ xstrdup(const char *str)
 	size_t len;
 	char *res;
 
-	res = NULL;
+	if (NULL == str)
+		return NULL;
 
-	if (str) {
-		len = strlen(str);
-		res = xmalloc(len + 1);
-		memcpy(res, str, len);
-		res[len] = '\0';
-	}
+	len = strlen(str);
+	res = xmalloc(len + 1);
+	memcpy(res, str, len);
+	res[len] = '\0';
 
 	return res;
 }
@@ -84,9 +83,7 @@ xprompt(const char *prompt)
 	if (pipe(fds) < 0)
 		die("pipe:");
 
-	pid = fork();
-
-	if (pid < 0)
+	if ((pid = fork()) < 0)
 		die("fork:");
 
 	if (pid == 0) {
@@ -98,6 +95,9 @@ xprompt(const char *prompt)
 		execlp("dmenu", "dmenu", "-p", prompt, (char*)(NULL));
 		execlp("rofi", "rofi", "-dmenu", "-i", "-p", prompt, "-hint-welcome",
 				"", "-hint-result", "", (char*)(NULL));
+
+		// TODO: add more fallbacks
+
 		_exit(127);
 	}
 
@@ -110,11 +110,9 @@ xprompt(const char *prompt)
 	while (1) {
 		count = read(fds[0], &output[total_read_count], left_to_read);
 		if (count == -1) {
-			if (errno == EINTR) {
+			if (errno == EINTR)
 				continue;
-			} else {
-				die("read:");
-			}
+			die("read:");
 		} else if (count == 0) {
 			break;
 		} else {
@@ -142,34 +140,35 @@ xprompt(const char *prompt)
 }
 
 extern bool
-is_writeable(const char *path)
+path_is_writeable(const char *path)
 {
 	FILE *fp;
 
 	if (NULL == (fp = fopen(path, "w")))
 		return false;
+
 	fclose(fp);
+
 	return true;
 }
 
 extern char *
-expand_path(const char *path)
+path_expand(const char *path)
 {
-	char *home, *expanded;
+	char *home;
+	char *res;
 
-	if (!path)
+	if (NULL == path)
 		return NULL;
 
 	if (path[0] != '~')
 		return xstrdup(path);
 
-	home = getenv("HOME");
+	if (NULL == (home = getenv("HOME")))
+		return NULL;
 
-	if (home == NULL)
-		return xstrdup(path);
+	res = xmalloc(strlen(home)+strlen(path));
+	sprintf(res, "%s%s", home, path+1);
 
-	expanded = xmalloc(strlen(home) + strlen(path));
-	sprintf(expanded, "%s%s", home, path+1);
-
-	return expanded;
+	return res;
 }

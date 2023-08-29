@@ -129,13 +129,13 @@ __canvas_set_size(Canvas_t *c, int w, int h)
 		c->x.shm.id = shmget(IPC_PRIVATE, w*h*4, IPC_CREAT | 0600);
 
 		if (c->x.shm.id < 0)
-			die("shmget failed");
+			die("shmget:");
 
 		c->px = shmat(c->x.shm.id, NULL, 0);
 
 		if (c->px == (void *) -1) {
 			shmctl(c->x.shm.id, IPC_RMID, NULL);
-			die("shmat failed");
+			die("shmat:");
 		}
 
 		xcb_shm_attach(c->conn, c->x.shm.seg, c->x.shm.id, 0);
@@ -144,9 +144,8 @@ __canvas_set_size(Canvas_t *c, int w, int h)
 		xcb_shm_create_pixmap(c->conn, c->x.shm.pixmap, c->win, w, h,
 				c->scr->root_depth, c->x.shm.seg, 0);
 	} else {
-		if (c->px) {
+		if (c->px)
 			xcb_image_destroy(c->x.image);
-		}
 
 		c->px = xmalloc(w*h*4);
 
