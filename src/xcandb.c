@@ -331,7 +331,6 @@ crop_end(void)
 
 	canvas_camera_to_canvas_pos(canvas, crop_rect.x, crop_rect.y, &x, &y);
 	canvas_crop(canvas, x, y, crop_rect.width, crop_rect.height);
-	canvas_camera_to_center(canvas);
 	canvas_render(canvas);
 
 	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_arrow);
