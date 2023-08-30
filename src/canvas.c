@@ -259,6 +259,7 @@ canvas_crop(Canvas_t *c, int x, int y, int w, int h)
 	}
 
 	__canvas_set_size(c, w, h);
+	canvas_camera_move_relative(c, -x, -y);
 
 	memcpy(c->px, crop_area, w*h*4);
 	free(crop_area);
