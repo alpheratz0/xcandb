@@ -224,25 +224,27 @@ save(void)
 	free(expanded_path);
 }
 
+static xcb_rectangle_t
+rect_from_two_points(xcb_point_t p1, xcb_point_t p2)
+{
+	int x, y;
+
+	x = MIN(p1.x, p2.x);
+	y = MIN(p1.y, p2.y);
+
+	return (xcb_rectangle_t) {
+		.x      =                   x,
+		.y      =                   y,
+		.width  = MAX(p1.x, p2.x) - x,
+		.height = MAX(p1.y, p2.y) - y
+	};
+}
+
 static void
 draw_dashed_rectangle(xcb_point_t a, xcb_point_t b)
 {
-	int x, y, w, h;
-
-	x = MIN(a.x, b.x);
-	y = MIN(a.y, b.y);
-
-	w = MAX(a.x, b.x) - x;
-	h = MAX(a.y, b.y) - y;
-
-	xcb_rectangle_t rect = {
-		.x = x,
-		.y = y,
-		.width = w,
-		.height = h
-	};
-
-	xcb_poly_rectangle(conn, win, rect_gc, 1, &rect);
+	xcb_poly_rectangle(conn, win, rect_gc, 1,
+			(const xcb_rectangle_t []) { rect_from_two_points(a, b)});
 }
 
 static void
@@ -318,21 +320,17 @@ crop_update(int16_t x, int16_t y)
 static void
 crop_end(void)
 {
-	int x, y, width, height;
-	int rx, ry;
+	xcb_rectangle_t crop_rect;
+	int x, y;
 
 	if (!crop.active)
 		return;
 
 	crop.active = false;
+	crop_rect = rect_from_two_points(crop.start, crop.end);
 
-	x = MIN(crop.start.x, crop.end.x);
-	y = MIN(crop.start.y, crop.end.y);
-	width = MAX(crop.start.x, crop.end.x) - x;
-	height = MAX(crop.start.y, crop.end.y) - y;
-
-	canvas_camera_to_canvas_pos(canvas, x, y, &rx, &ry);
-	canvas_crop(canvas, rx, ry, width, height);
+	canvas_camera_to_canvas_pos(canvas, crop_rect.x, crop_rect.y, &x, &y);
+	canvas_crop(canvas, x, y, crop_rect.width, crop_rect.height);
 	canvas_camera_to_center(canvas);
 	canvas_render(canvas);
 
@@ -371,21 +369,17 @@ blur_update(int16_t x, int16_t y)
 static void
 blur_end(void)
 {
-	int x, y, width, height;
-	int rx, ry;
+	xcb_rectangle_t blur_rect;
+	int x, y;
 
 	if (!blur.active)
 		return;
 
 	blur.active = false;
+	blur_rect = rect_from_two_points(blur.start, blur.end);
 
-	x = MIN(blur.start.x, blur.end.x);
-	y = MIN(blur.start.y, blur.end.y);
-	width = MAX(blur.start.x, blur.end.x) - x;
-	height = MAX(blur.start.y, blur.end.y) - y;
-
-	canvas_camera_to_canvas_pos(canvas, x, y, &rx, &ry);
-	canvas_blur(canvas, rx, ry, width, height, 10);
+	canvas_camera_to_canvas_pos(canvas, blur_rect.x, blur_rect.y, &x, &y);
+	canvas_blur(canvas, x, y, blur_rect.width, blur_rect.height, 10);
 	canvas_render(canvas);
 
 	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_arrow);
