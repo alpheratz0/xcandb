@@ -351,24 +351,23 @@ canvas_set_viewport(Canvas_t *c, int vw, int vh)
 	__canvas_keep_visible(c);
 }
 
-// FIXME: ???
-//        this generates unwanted visual artifacts
 extern void
 canvas_render(Canvas_t *c)
 {
 	if (c->pos.y > 0)
 		xcb_clear_area(c->conn, 0, c->win, 0, 0, c->viewport_width, c->pos.y);
 
+
 	if (c->pos.y + c->height < c->viewport_height)
 		xcb_clear_area(c->conn, 0, c->win, 0, c->pos.y + c->height,
-				c->viewport_width, c->height - c->pos.y + c->height);
+				c->viewport_width, c->viewport_height - (c->pos.y + c->height));
 
 	if (c->pos.x > 0)
 		xcb_clear_area(c->conn, 0, c->win, 0, 0, c->pos.x, c->viewport_height);
 
 	if (c->pos.x + c->width < c->viewport_width)
 		xcb_clear_area(c->conn, 0, c->win, c->pos.x + c->width, 0,
-				c->width - c->pos.x + c->width, c->viewport_width);
+				c->viewport_width - (c->pos.x + c->width), c->viewport_height);
 
 	if (c->shm) {
 		xcb_copy_area(c->conn, c->x.shm.pixmap, c->win,
