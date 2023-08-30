@@ -35,10 +35,10 @@ extern void
 canvas_blur(Canvas_t *c, int x, int y, int w, int h, int strength);
 
 extern void
-canvas_camera_move_relative(Canvas_t *c, int offx, int offy);
+canvas_move_relative(Canvas_t *c, int offx, int offy);
 
 extern void
-canvas_camera_to_center(Canvas_t *c);
+canvas_move_to_center(Canvas_t *c);
 
 extern void
 canvas_set_viewport(Canvas_t *c, int vw, int vh);
@@ -47,7 +47,7 @@ extern void
 canvas_render(Canvas_t *c);
 
 extern void
-canvas_camera_to_canvas_pos(Canvas_t *c, int x, int y, int *out_x, int *out_y);
+canvas_viewport_to_canvas_pos(Canvas_t *c, int x, int y, int *out_x, int *out_y);
 
 extern void
 canvas_free(Canvas_t *c);

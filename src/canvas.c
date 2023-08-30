@@ -36,13 +36,11 @@
 #define BLUE(c) ((c>>0) & 0xff)
 
 struct Canvas {
-	/* camera position */
 	struct {
 		int x;
 		int y;
 	} pos;
 
-	/* camera width & height */
 	int viewport_width;
 	int viewport_height;
 
@@ -163,17 +161,18 @@ __canvas_set_size(Canvas_t *c, int w, int h)
 static void
 __canvas_keep_visible(Canvas_t *c)
 {
-	if (c->pos.x > c->width)
-		c->pos.x = c->width;
+	if (c->pos.x < -c->width)
+		c->pos.x = -c->width;
 
-	if (c->pos.y > c->height)
-		c->pos.y = c->height;
+	if (c->pos.y < -c->height)
+		c->pos.y = -c->height;
 
-	if (c->pos.x < -c->viewport_width)
-		c->pos.x = -c->viewport_width;
+	if (c->pos.x > c->viewport_width)
+		c->pos.x = c->viewport_width;
 
-	if (c->pos.y < -c->viewport_height)
-		c->pos.y = -c->viewport_height;
+	if (c->pos.y > c->viewport_height)
+		c->pos.y = c->viewport_height;
+
 }
 
 extern Canvas_t *
@@ -259,7 +258,7 @@ canvas_crop(Canvas_t *c, int x, int y, int w, int h)
 	}
 
 	__canvas_set_size(c, w, h);
-	canvas_camera_move_relative(c, -x, -y);
+	canvas_move_relative(c, x, y);
 
 	memcpy(c->px, crop_area, w*h*4);
 	free(crop_area);
@@ -328,7 +327,7 @@ canvas_blur(Canvas_t *c, int x, int y, int w, int h, int strength)
 }
 
 extern void
-canvas_camera_move_relative(Canvas_t *c, int offx, int offy)
+canvas_move_relative(Canvas_t *c, int offx, int offy)
 {
 	c->pos.x += offx;
 	c->pos.y += offy;
@@ -337,10 +336,10 @@ canvas_camera_move_relative(Canvas_t *c, int offx, int offy)
 }
 
 extern void
-canvas_camera_to_center(Canvas_t *c)
+canvas_move_to_center(Canvas_t *c)
 {
-	c->pos.x = -(c->viewport_width - c->width) / 2;
-	c->pos.y = -(c->viewport_height - c->height) / 2;
+	c->pos.x = (c->viewport_width - c->width) / 2;
+	c->pos.y = (c->viewport_height - c->height) / 2;
 }
 
 extern void
@@ -357,36 +356,36 @@ canvas_set_viewport(Canvas_t *c, int vw, int vh)
 extern void
 canvas_render(Canvas_t *c)
 {
-	if (-c->pos.y > 0)
-		xcb_clear_area(c->conn, 0, c->win, 0, 0, c->viewport_width, -c->pos.y);
+	if (c->pos.y > 0)
+		xcb_clear_area(c->conn, 0, c->win, 0, 0, c->viewport_width, c->pos.y);
 
-	if (-c->pos.y + c->height < c->viewport_height)
-		xcb_clear_area(c->conn, 0, c->win, 0, -c->pos.y + c->height,
-				c->viewport_width, c->height + c->pos.y + c->height);
+	if (c->pos.y + c->height < c->viewport_height)
+		xcb_clear_area(c->conn, 0, c->win, 0, c->pos.y + c->height,
+				c->viewport_width, c->height - c->pos.y + c->height);
 
-	if (-c->pos.x > 0)
-		xcb_clear_area(c->conn, 0, c->win, 0, 0, -c->pos.x, c->viewport_height);
+	if (c->pos.x > 0)
+		xcb_clear_area(c->conn, 0, c->win, 0, 0, c->pos.x, c->viewport_height);
 
-	if (-c->pos.x + c->width < c->viewport_width)
-		xcb_clear_area(c->conn, 0, c->win, -c->pos.x + c->width, 0,
-				c->width + c->pos.x + c->width, c->viewport_width);
+	if (c->pos.x + c->width < c->viewport_width)
+		xcb_clear_area(c->conn, 0, c->win, c->pos.x + c->width, 0,
+				c->width - c->pos.x + c->width, c->viewport_width);
 
 	if (c->shm) {
 		xcb_copy_area(c->conn, c->x.shm.pixmap, c->win,
-				c->gc, 0, 0, -c->pos.x, -c->pos.y, c->width, c->height);
+				c->gc, 0, 0, c->pos.x, c->pos.y, c->width, c->height);
 	} else {
 		xcb_image_put(c->conn, c->win, c->gc,
-				c->x.image, -c->pos.x, -c->pos.y, 0);
+				c->x.image, c->pos.x, c->pos.y, 0);
 	}
 
 	xcb_flush(c->conn);
 }
 
 extern void
-canvas_camera_to_canvas_pos(Canvas_t *c, int x, int y, int *out_x, int *out_y)
+canvas_viewport_to_canvas_pos(Canvas_t *c, int x, int y, int *out_x, int *out_y)
 {
-	*out_x = x + c->pos.x;
-	*out_y = y + c->pos.y;
+	*out_x = x - c->pos.x;
+	*out_y = y - c->pos.y;
 }
 
 extern void
