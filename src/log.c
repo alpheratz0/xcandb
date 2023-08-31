@@ -55,6 +55,16 @@ log_notify_send(const char *s)
 	return 0;
 }
 
+static void
+log_context_based(const char *s)
+{
+	if (isatty(STDOUT_FILENO)) {
+		log_stderr(s);
+	} else {
+		log_notify_send(s);
+	}
+}
+
 extern void
 info(const char *fmt, ...)
 {
@@ -63,10 +73,7 @@ info(const char *fmt, ...)
 
 	va_start(args, fmt);
 	vsnprintf(msg, sizeof(msg), fmt, args);
-
-	log_notify_send(msg);
-	log_stderr(msg);
-
+	log_context_based(msg);
 	va_end(args);
 }
 
@@ -83,11 +90,9 @@ die(const char *fmt, ...)
 		snprintf(msg_w_strerr, sizeof(msg_w_strerr),
 				"%s %s", msg, strerror(errno));
 
-		log_notify_send(msg_w_strerr);
-		log_stderr(msg_w_strerr);
+		log_context_based(msg_w_strerr);
 	} else {
-		log_notify_send(msg);
-		log_stderr(msg);
+		log_context_based(msg);
 	}
 
 	va_end(args);
