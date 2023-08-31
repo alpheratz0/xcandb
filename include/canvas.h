@@ -38,9 +38,6 @@ extern void
 canvas_move_relative(Canvas_t *c, int offx, int offy);
 
 extern void
-canvas_move_to_center(Canvas_t *c);
-
-extern void
 canvas_set_viewport(Canvas_t *c, int vw, int vh);
 
 extern void

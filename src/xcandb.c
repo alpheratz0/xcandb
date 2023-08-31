@@ -473,7 +473,6 @@ static void
 h_configure_notify(xcb_configure_notify_event_t *ev)
 {
 	canvas_set_viewport(canvas, ev->width, ev->height);
-	canvas_move_to_center(canvas);
 }
 
 static void

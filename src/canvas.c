@@ -198,6 +198,8 @@ canvas_load(xcb_connection_t *conn, xcb_window_t win, const char *path)
 	c->conn = conn;
 	c->win = win;
 	c->scr = scr;
+	c->viewport_width = 0;
+	c->viewport_height = 0;
 
 	c->gc = xcb_generate_id(conn);
 	c->shm = __x_check_mit_shm_extension(conn) ? 1 : 0;
@@ -336,15 +338,16 @@ canvas_move_relative(Canvas_t *c, int offx, int offy)
 }
 
 extern void
-canvas_move_to_center(Canvas_t *c)
-{
-	c->pos.x = (c->viewport_width - c->width) / 2;
-	c->pos.y = (c->viewport_height - c->height) / 2;
-}
-
-extern void
 canvas_set_viewport(Canvas_t *c, int vw, int vh)
 {
+	if (c->viewport_width == 0 || c->viewport_height == 0) {
+		c->pos.x = (vw - c->width) / 2;
+		c->pos.y = (vh - c->height) / 2;
+	} else {
+		c->pos.x += (vw - c->viewport_width) / 2;
+		c->pos.y += (vh - c->viewport_height) / 2;
+	}
+
 	c->viewport_width = vw;
 	c->viewport_height = vh;
 
