@@ -357,7 +357,6 @@ canvas_render(Canvas_t *c)
 	if (c->pos.y > 0)
 		xcb_clear_area(c->conn, 0, c->win, 0, 0, c->viewport_width, c->pos.y);
 
-
 	if (c->pos.y + c->height < c->viewport_height)
 		xcb_clear_area(c->conn, 0, c->win, 0, c->pos.y + c->height,
 				c->viewport_width, c->viewport_height - (c->pos.y + c->height));
