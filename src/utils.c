@@ -155,8 +155,7 @@ path_is_writeable(const char *path)
 extern char *
 path_expand(const char *path)
 {
-	char *home;
-	char *res;
+	char *home, *res;
 
 	if (NULL == path)
 		return NULL;
