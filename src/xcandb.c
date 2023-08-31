@@ -519,10 +519,10 @@ main(int argc, char **argv)
 		}
 	}
 
-	xwininit();
-
 	if (NULL == loadpath)
 		die("a path should be specified");
+
+	xwininit();
 
 	canvas = canvas_load(conn, win, loadpath);
 
