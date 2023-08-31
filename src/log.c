@@ -45,11 +45,11 @@ log_notify_send(const char *s)
 		execlp("notify-send", "notify-send",
 				"xcandb", s, (char *)(NULL));
 		_exit(127);
-	} 
+	}
 
 	if (waitpid(pid, &status, 0) < 0 ||
 			(WIFEXITED(status) &&
-			 	WEXITSTATUS(status) == 127))
+				WEXITSTATUS(status) == 127))
 		return -1;
 
 	return 0;
