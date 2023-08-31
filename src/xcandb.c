@@ -329,11 +329,10 @@ crop_end(void)
 	crop.active = false;
 	crop_rect = rect_from_two_points(crop.start, crop.end);
 
+	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_arrow);
 	canvas_viewport_to_canvas_pos(canvas, crop_rect.x, crop_rect.y, &x, &y);
 	canvas_crop(canvas, x, y, crop_rect.width, crop_rect.height);
 	canvas_render(canvas);
-
-	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_arrow);
 }
 
 static void
@@ -377,11 +376,10 @@ blur_end(void)
 	blur.active = false;
 	blur_rect = rect_from_two_points(blur.start, blur.end);
 
+	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_arrow);
 	canvas_viewport_to_canvas_pos(canvas, blur_rect.x, blur_rect.y, &x, &y);
 	canvas_blur(canvas, x, y, blur_rect.width, blur_rect.height, 10);
 	canvas_render(canvas);
-
-	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_arrow);
 }
 
 static void
