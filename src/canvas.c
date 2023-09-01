@@ -73,9 +73,9 @@ __pack_color(unsigned char *p)
 static inline void
 __unpack_color(uint32_t c, unsigned char *p)
 {
-	p[0] = (c >> 16) & 0xff;
-	p[1] = (c >>  8) & 0xff;
-	p[2] = (c >>  0) & 0xff;
+	p[0] = RED(c);
+	p[1] = GREEN(c);
+	p[2] = BLUE(c);
 	p[3] = 0xff;
 }
 
