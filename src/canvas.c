@@ -229,8 +229,15 @@ canvas_save(Canvas_t *c, const char *path)
 		for (x = 0; x < c->width; ++x)
 			__unpack_color(c->px[y*c->width+x], &px[(y*c->width+x)*4]);
 
-	stbi_write_png(path, c->width, c->height, 4,
-		px, c->width * 4);
+	if (NULL != strstr(path, ".jpg") || NULL != strstr(path, ".jpeg")) {
+		stbi_write_jpg(path, c->width, c->height, 4, px, 100);
+	} else if (NULL != strstr(path, ".bmp")) {
+		stbi_write_bmp(path, c->width, c->height, 4, px);
+	} else if (NULL != strstr(path, ".tga")) {
+		stbi_write_tga(path, c->width, c->height, 4, px);
+	} else {
+		stbi_write_png(path, c->width, c->height, 4, px, c->width * 4);
+	}
 
 	free(px);
 }
