@@ -31,6 +31,7 @@
 #include "utils.h"
 #include "log.h"
 
+#define ALPHA(c) ((c>>24) & 0xff)
 #define RED(c) ((c>>16) & 0xff)
 #define GREEN(c) ((c>>8) & 0xff)
 #define BLUE(c) ((c>>0) & 0xff)
@@ -67,7 +68,7 @@ struct Canvas {
 static inline uint32_t
 __pack_color(unsigned char *p)
 {
-	return (uint32_t)(p[0]<<16)|(p[1]<<8)|p[2];
+	return (uint32_t)(p[3]<<24)|(p[0]<<16)|(p[1]<<8)|p[2];
 }
 
 static inline void
@@ -76,7 +77,7 @@ __unpack_color(uint32_t c, unsigned char *p)
 	p[0] = RED(c);
 	p[1] = GREEN(c);
 	p[2] = BLUE(c);
-	p[3] = 0xff;
+	p[3] = ALPHA(c);
 }
 
 static int
@@ -318,7 +319,10 @@ canvas_blur(Canvas_t *c, int x, int y, int w, int h, int strength)
 						numpx++;
 					}
 				}
-				blur_area[dy*w+dx] = ((r/numpx)<<16) | ((g/numpx)<<8) | (b/numpx);
+				blur_area[dy*w+dx] = ((blur_area[dy*w+dx])&0xff000000) |
+									 ((r/numpx)<<16) |
+									 ((g/numpx)<<8) |
+									 (b/numpx);
 			}
 		}
 	}
