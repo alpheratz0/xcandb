@@ -1,2 +1,2 @@
 [ ] zoom in/out for small/large images
-[ ] save the canvas to the specified format (.png, .jpg, etc)
+[x] save the canvas to the specified format (.png, .jpg, etc)
