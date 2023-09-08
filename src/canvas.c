@@ -86,27 +86,15 @@ __x_check_mit_shm_extension(xcb_connection_t *conn)
 	xcb_generic_error_t *error;
 	xcb_shm_query_version_cookie_t cookie;
 	xcb_shm_query_version_reply_t *reply;
+	int supported;
 
 	cookie = xcb_shm_query_version(conn);
 	reply = xcb_shm_query_version_reply(conn, cookie, &error);
+	supported = !error && reply && reply->shared_pixmaps;
 
-	if (NULL != error) {
-		if (NULL != reply)
-			free(reply);
-		free(error);
-		return 0;
-	}
+	free(error); free(reply);
 
-	if (NULL != reply) {
-		if (reply->shared_pixmaps == 0) {
-			free(reply);
-			return 0;
-		}
-		free(reply);
-		return 1;
-	}
-
-	return 0;
+	return supported;
 }
 
 static void
