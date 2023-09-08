@@ -21,6 +21,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#define CLAMP(v,min,max) \
+	((v)>(max)?(max):(v)<(min)?(min):(v))
+
 extern const char *
 enotnull(const char *str, const char *name);
 

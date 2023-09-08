@@ -162,18 +162,8 @@ __canvas_set_size(Canvas_t *c, int w, int h)
 static void
 __canvas_keep_visible(Canvas_t *c)
 {
-	if (c->pos.x < -c->width)
-		c->pos.x = -c->width;
-
-	if (c->pos.y < -c->height)
-		c->pos.y = -c->height;
-
-	if (c->pos.x > c->viewport_width)
-		c->pos.x = c->viewport_width;
-
-	if (c->pos.y > c->viewport_height)
-		c->pos.y = c->viewport_height;
-
+	c->pos.x = CLAMP(c->pos.x, -c->width, c->viewport_width);
+	c->pos.y = CLAMP(c->pos.y, -c->height, c->viewport_height);
 }
 
 extern Canvas_t *
