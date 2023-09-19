@@ -63,6 +63,7 @@ static xcb_cursor_context_t *cctx;
 static xcb_cursor_t cursor_hand;
 static xcb_cursor_t cursor_arrow;
 static xcb_cursor_t cursor_crosshair;
+static xcb_cursor_t cursor_watch;
 static DragInfo_t drag;
 static CropInfo_t crop;
 static BlurInfo_t blur;
@@ -125,6 +126,7 @@ xwininit(void)
 	cursor_hand = xcb_cursor_load_cursor(cctx, "fleur");
 	cursor_arrow = xcb_cursor_load_cursor(cctx, "left_ptr");
 	cursor_crosshair = xcb_cursor_load_cursor(cctx, "crosshair");
+	cursor_watch = xcb_cursor_load_cursor(cctx, "watch");
 	ksyms = xcb_key_symbols_alloc(conn);
 	win = xcb_generate_id(conn);
 	rect_gc = xcb_generate_id(conn);
@@ -197,6 +199,7 @@ xwindestroy(void)
 	xcb_free_cursor(conn, cursor_hand);
 	xcb_free_cursor(conn, cursor_arrow);
 	xcb_free_cursor(conn, cursor_crosshair);
+	xcb_free_cursor(conn, cursor_watch);
 	xcb_key_symbols_free(ksyms);
 	xcb_destroy_window(conn, win);
 	xcb_cursor_context_free(cctx);
@@ -376,9 +379,11 @@ blur_end(void)
 	blur.active = false;
 	blur_rect = rect_from_two_points(blur.start, blur.end);
 
-	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_arrow);
+	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_watch);
+	xcb_flush(conn);
 	canvas_viewport_to_canvas_pos(canvas, blur_rect.x, blur_rect.y, &x, &y);
 	canvas_blur(canvas, x, y, blur_rect.width, blur_rect.height, 10);
+	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_arrow);
 	canvas_render(canvas);
 }
 
