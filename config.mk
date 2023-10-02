@@ -1,11 +1,19 @@
-# Copyright (C) 2022 <alpheratz99@protonmail.com>
+# Copyright (C) 2022-2023 <alpheratz99@protonmail.com>
 # This program is free software.
 
-VERSION=0.5.9
-CC=cc
-INCS=-I/usr/X11R6/include -Iinclude
-CFLAGS=-std=c99 -pedantic -Wall -Wextra -Os $(INCS) -DVERSION=\"$(VERSION)\"
-LDLIBS=-lxcb -lxcb-image -lxcb-cursor -lxcb-keysyms -lm -lxcb-xkb -lxcb-shm
-LDFLAGS=-L/usr/X11R6/lib -s
-PREFIX=/usr/local
-MANPREFIX=$(PREFIX)/share/man
+VERSION = 0.5.9
+
+PREFIX = /usr/local
+MANPREFIX = $(PREFIX)/share/man
+
+PKG_CONFIG = pkg-config
+
+DEPENDENCIES = xcb xcb-image xcb-cursor xcb-keysyms xcb-xkb xcb-shm
+
+INCS = $(shell $(PKG_CONFIG) --cflags $(DEPENDENCIES)) -Iinclude
+LIBS = $(shell $(PKG_CONFIG) --libs $(DEPENDENCIES)) -lm
+
+CFLAGS = -std=c99 -pedantic -Wall -Wextra -Os $(INCS) -DVERSION=\"$(VERSION)\"
+LDFLAGS = -s $(LIBS)
+
+CC = cc

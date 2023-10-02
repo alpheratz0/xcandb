@@ -13,7 +13,7 @@ OBJ=\
 all: xcandb
 
 xcandb: $(OBJ)
-	$(CC) $(LDFLAGS) -o xcandb $(OBJ) $(LDLIBS)
+	$(CC) $(LDFLAGS) -o xcandb $(OBJ)
 
 clean:
 	rm -f xcandb $(OBJ) xcandb-$(VERSION).tar.gz
