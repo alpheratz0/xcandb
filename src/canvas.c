@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2022-2023 <alpheratz99@protonmail.com>
+	Copyright (C) 2022-2025 <alpheratz99@protonmail.com>
 
 	This program is free software; you can redistribute it and/or modify it
 	under the terms of the GNU General Public License version 2 as published by
@@ -250,6 +250,20 @@ canvas_crop(Canvas_t *c, int x, int y, int w, int h)
 
 	memcpy(c->px, crop_area, w*h*4);
 	free(crop_area);
+}
+
+extern void
+canvas_grayscale(Canvas_t *c, int x, int y, int w, int h)
+{
+	for (int cy = y; cy < (y+h); ++cy) {
+		if (cy < 0 || cy >= c->height) continue;
+		for (int cx = x; cx < (x+w); ++cx) {
+			if (cx < 0 || cx >= c->width) continue;
+			uint32_t col = c->px[cy*c->width+cx];
+			int gray = ((col & 0xff) + ((col >> 8) & 0xff) + ((col >> 16) & 0xff)) / 3;
+			c->px[cy*c->width+cx] = (gray) | (gray << 8) | (gray << 16);
+		}
+	}
 }
 
 extern void

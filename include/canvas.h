@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2022-2023 <alpheratz99@protonmail.com>
+	Copyright (C) 2022-2025 <alpheratz99@protonmail.com>
 
 	This program is free software; you can redistribute it and/or modify it
 	under the terms of the GNU General Public License version 2 as published by
@@ -30,6 +30,9 @@ canvas_save(Canvas_t *c, const char *path);
 
 extern void
 canvas_crop(Canvas_t *c, int x, int y, int w, int h);
+
+extern void
+canvas_grayscale(Canvas_t *c, int x, int y, int w, int h);
 
 extern void
 canvas_blur(Canvas_t *c, int x, int y, int w, int h, int strength);

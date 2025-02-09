@@ -380,6 +380,9 @@ blur_end(void)
 	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_watch);
 	xcb_flush(conn);
 	canvas_viewport_to_canvas_pos(canvas, blur_rect.x, blur_rect.y, &x, &y);
+
+	// TODO: add more "filters" and change the right click filter with
+	// number keys 1-9 and n & p to move between next and previous filter
 	canvas_blur(canvas, x, y, blur_rect.width, blur_rect.height, 10);
 	xcb_change_window_attributes(conn, win, XCB_CW_CURSOR, &cursor_arrow);
 	canvas_render(canvas);
