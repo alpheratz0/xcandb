@@ -214,11 +214,11 @@ save(void)
 
 	if (NULL == (expanded_path = path_expand(path))) {
 		info("could not expand path");
-	} else if (path_is_writeable(expanded_path)) {
+	} else if (!path_is_writeable(expanded_path)) {
+		info("can't save to %s", path);
+	} else {
 		canvas_save(canvas, expanded_path);
 		info("saved image succesfully to %s", path);
-	} else {
-		info("can't save to %s", path);
 	}
 
 	free(path);
